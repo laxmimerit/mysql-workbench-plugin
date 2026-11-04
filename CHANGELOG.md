@@ -15,7 +15,8 @@ First release, for MySQL Workbench 26.10.0.
 - The plugin server tells the plugin which Workbench version is running.
 - New shortcut icon: your own MySQL Workbench icon with a small notebook badge in the corner. The installer makes
   it on your PC from the Workbench you have installed; if it cannot, the shortcut uses the teal logo.
-- New teal logo: a database and a notebook card on a teal grid tile.
+- The README logo is the same picture as the shortcut icon. The installer exe uses a teal logo (a database and a
+  notebook card on a teal grid tile).
 - README: a guide to choosing an AI model, an FAQ and GIFs.
 
 ### Internal build 10

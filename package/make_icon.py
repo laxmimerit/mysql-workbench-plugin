@@ -7,8 +7,8 @@ at 4096 px and scaled down, so the edges stay smooth.
     py package/make_icon.py
 
 Writes package/icon.ico (16 to 256 px, the installer's own icon and the shortcut icon when no MySQL Workbench icon is
-found), package/icon.png (256 px), docs/images/logo.png (512 px, for the README) and package/badge.png (512 px wide,
-with a soft shadow). On install, the badge goes on the corner of the user's own MySQL Workbench icon to make the
+found), package/icon.png (256 px), package/badge.png (512 px wide, with a soft shadow) and docs/images/logo.png
+(256 px, for the README: the shortcut icon, made from the MySQL Workbench installed on this PC). On install, the badge goes on the corner of the user's own MySQL Workbench icon to make the
 shortcut icon (see make_shortcut_icon in kgptalkie_workbench.py), so no Workbench artwork is in this repo.
 """
 import os
@@ -142,8 +142,6 @@ big = draw(True)
 ico = os.path.join(HERE, "icon.ico")
 big.save(ico, sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
 big.resize((256, 256), Image.LANCZOS).save(os.path.join(HERE, "icon.png"))
-os.makedirs(os.path.join(REPO, "docs", "images"), exist_ok=True)
-big.resize((512, 512), Image.LANCZOS).save(os.path.join(REPO, "docs", "images", "logo.png"))
 
 # badge: the mark cropped to what is drawn, with a soft shadow so it stands out on any icon
 mark = draw(False)
@@ -156,4 +154,25 @@ b.alpha_composite(sh.filter(ImageFilter.GaussianBlur(14)))
 b.alpha_composite(mark, (pad, pad))
 b = b.resize((512, round(b.height * 512 / b.width)), Image.LANCZOS)
 b.save(os.path.join(HERE, "badge.png"), optimize=True)
+
+# README logo: the same picture as the shortcut, so people see one logo: MySQL Workbench's own icon (from the
+# Workbench installed on this PC) with the badge in the corner, as the installer makes it (BADGE_FRAC in
+# kgptalkie_workbench.py). Without a Workbench here, docs/images/logo.png is left as it is.
+BADGE_FRAC = 0.35
+wb_ico = None
+for root in (os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs"), os.environ.get("ProgramFiles", ""),
+             os.environ.get("ProgramW6432", "")):
+    cand = os.path.join(root, "MySQL", "MySQL Workbench", "resources", "app", "images", "app-icon.ico")
+    if root and os.path.isfile(cand):
+        wb_ico = cand
+        break
+if wb_ico:
+    wb = Image.open(wb_ico)
+    wb.size = max(wb.info.get("sizes", {(256, 256)}))
+    wb = wb.convert("RGBA").resize((256, 256), Image.LANCZOS)
+    w = round(256 * BADGE_FRAC)
+    bb = b.resize((w, round(b.height * w / b.width)), Image.LANCZOS)
+    wb.alpha_composite(bb, (256 - bb.width, 256 - bb.height))
+    os.makedirs(os.path.join(REPO, "docs", "images"), exist_ok=True)
+    wb.save(os.path.join(REPO, "docs", "images", "logo.png"), optimize=True)
 print(ico)
