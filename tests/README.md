@@ -56,9 +56,14 @@ good run.
 The README images come from this environment, in the light theme:
 
 ```bash
-py tests/run.py sample-notebook
 py tests/run.py screenshot-setup
 py tests/screenshots.py
+py tests/record_gif.py all
 ```
+
+`screenshot-setup` empties the open notebook, adds the sample notebook and runs it; `screenshots.py` then saves the
+five PNGs. `record_gif.py` films the hidden Workbench (scenes `run`, `typing`, `results`, `ai`) and needs ffmpeg on
+PATH (or `FFMPEG` set). The `ai` scene sets the test server to Ollama with `qwen3.8:27b` (change it with
+`OLLAMA_MODEL`); time spent waiting for the model is cut from the GIF.
 
 When a feature is added or changed, make new screenshots and GIFs for it in the same change.

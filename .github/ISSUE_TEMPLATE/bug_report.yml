@@ -45,6 +45,14 @@ body:
     attributes:
       label: MySQL server version
       placeholder: "9.4.0"
+  - type: input
+    id: model
+    attributes:
+      label: AI provider and model (only for AI problems)
+      description: |
+        For example "Ollama, qwen3.8:27b". Wrong SQL from a model smaller than 8b is the model, not a plugin bug;
+        please try a bigger model or a cloud model first (README, "Choosing an AI model").
+      placeholder: "Ollama, qwen3.8:27b"
   - type: dropdown
     id: os
     attributes:

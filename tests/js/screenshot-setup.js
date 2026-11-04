@@ -1,6 +1,8 @@
 (async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms)).then(() => window.kgptalkieTick());
   const ed = window.kgptalkieTestEd, m = ed.getModel(), cs = () => m.executionContexts.content;
+  // start from an empty notebook
+  await window.kgptalkieActions.clearAll(ed); ed.executeEdits('t', [{ range: m.getFullModelRange(), text: '' }]); await window.kgptalkieActions.setType(ed, 0, 'mysql');
   // fold the side panel for a wider notebook
   const h = document.getElementById('pane0Host'); if (h && h.getBoundingClientRect().width > 40) document.getElementById('desktopWorkspaceSidebarToggle').click();
   const bar = ed.getDomNode().closest('.editorHost').parentElement.querySelector(':scope > .kgptalkieNbBar');

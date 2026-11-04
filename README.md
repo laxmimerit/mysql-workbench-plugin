@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/images/logo.png" alt="Modern MySQL Workbench logo" width="128" height="128">
+
 # Modern MySQL Workbench
 
 **A Jupyter-style notebook for MySQL Workbench 26, with AI, result charts, exports and a VS Code-style workspace.**
@@ -14,13 +16,14 @@ A free plugin by KGP Talkie. It runs on top of your installed Workbench and does
 [Install](#install) · [Features](#features) · [How it works](#how-it-works) · [Development](#development) ·
 [Changelog](CHANGELOG.md)
 
-![Notebook with results](docs/images/1-notebook-results.png)
+![Get Started, Run All, results and a chart](docs/images/demo-run-all.gif)
 
 </div>
 
 ## Contents
 
 - [Features](#features)
+- [Choosing an AI model](#choosing-an-ai-model)
 - [Requirements](#requirements)
 - [Install](#install)
 - [Update and uninstall](#update-and-uninstall)
@@ -45,6 +48,8 @@ A free plugin by KGP Talkie. It runs on top of your installed Workbench and does
 - The bar shows which server the notebook talks to, for example `Local · MySQL 9.4.0`, plus a Production or
   Read-only tag.
 
+![Notebook with results](docs/images/1-notebook-results.png)
+
 ### Typing SQL
 
 - MySQL keywords turn into capitals as you type. Names, strings, comments, `quoted` names and `{{variables}}` stay as
@@ -54,13 +59,15 @@ A free plugin by KGP Talkie. It runs on top of your installed Workbench and does
   an alias or table name (`c.`), and inserts keywords in UPPERCASE, lowercase or as typed.
 - Shift+Alt+F turns a query into one clause per line and back.
 
-![Autocomplete after an alias](docs/images/3-autocomplete.png)
+![Keywords in capitals as you type, columns after an alias, Ctrl+Enter](docs/images/demo-typing.gif)
 
 ### Results
 
 - Search, per-column filters (`>500`, `1..5`, `null`, `!text`), sort, copy as CSV, TSV, JSON, Markdown or INSERT,
   save as CSV or JSON, a value viewer on double-click.
 - Charts: bar, line, area, scatter and pie, stacked or horizontal, saved per cell.
+
+![Search the result, then switch to a chart](docs/images/demo-results.gif)
 
 ![Chart view](docs/images/2-chart.png)
 
@@ -78,6 +85,9 @@ A free plugin by KGP Talkie. It runs on top of your installed Workbench and does
 - Explain a cell, optimize it (with its EXPLAIN plan), Fix with AI on errors, explain a result, and AI cells that
   turn plain words into SQL in the cell below.
 - Your API key stays on your PC, encrypted (see [Privacy and security](#privacy-and-security)).
+- Pick a model that is big enough. See [Choosing an AI model](#choosing-an-ai-model).
+
+![An AI cell writes the SQL, then it runs](docs/images/demo-ai-cell.gif)
 
 ![Configure AI](docs/images/5-configure-ai.png)
 
@@ -87,6 +97,38 @@ A free plugin by KGP Talkie. It runs on top of your installed Workbench and does
 - Schema tree: Select Top 100 in Notebook and Describe in Notebook.
 - A VS Code-style activity bar with an Explorer panel for a folder of `.sql` and notebook files, and a sample
   notebook (`sample_shop`) under Get Started.
+
+## Choosing an AI model
+
+**The plugin does not write the SQL. The model does.** The plugin sends your request and your table and column names
+to the model you pick, and shows what comes back. A weak model gives weak SQL, however good the plugin is.
+
+### Local models (Ollama, LM Studio)
+
+- **Use a model with at least 8 to 9 billion parameters** (names with 8b, 9b, 12b, 14b, 27b and so on).
+  The AI cell GIF above uses `qwen3.8:27b` on Ollama.
+- **Tiny models (0.5b to 4b) are not good enough for SQL.** They make up table and column names, join the wrong
+  columns, forget `GROUP BY`, and explain SQL that is not the SQL they wrote.
+- **If you use a tiny model and the SQL is wrong, the plugin is not broken. The model is too small.** Please do not
+  report this as a bug. Switch to a bigger model, or to a cloud model, and try again.
+- A bigger model needs more memory. As a rough guide, an 8b to 9b model needs about 6 to 8 GB of free GPU memory
+  (or RAM, and then it is slow). If your PC cannot run one, use a cloud model instead.
+
+### Cloud models
+
+If your PC cannot run an 8b or bigger model, use a cloud model. Cloud models are bigger and give better SQL.
+
+- **Paid:** OpenAI, Anthropic or OpenRouter. Pick the provider in Configure AI and paste your API key.
+- **Free:** several services give a free API key with daily or monthly limits. For example:
+  - **Google Gemini** (Google AI Studio): pick **Custom (OpenAI-compatible)**, Base URL
+    `https://generativelanguage.googleapis.com/v1beta/openai/`, and your Gemini API key.
+  - **OpenRouter**: pick **OpenRouter** and a model whose name ends in `:free`.
+  - **NVIDIA NIM** (build.nvidia.com): pick **Custom (OpenAI-compatible)**, Base URL
+    `https://integrate.api.nvidia.com/v1`, and your NVIDIA API key.
+
+Free offers, their limits and their model names change often. When you install the plugin, search the web for
+"free AI API" or "free LLM API" to see what is on offer at that time. Read each service's terms first: some free tiers
+may keep your requests or use them for training, so do not send private data to them.
 
 ## Requirements
 
@@ -148,6 +190,8 @@ Found a security problem? See [SECURITY.md](SECURITY.md).
 | "MySQL Workbench is already open without the plugin" | Close Workbench (File > Exit), then open Modern MySQL Workbench again. |
 | "MySQL Workbench 26 was not found" | Install MySQL Workbench 26 first. The plugin looks in `%LOCALAPPDATA%\Programs` and `Program Files`. |
 | PDF export fails | PDF export uses Microsoft Edge. Check that Edge is installed. |
+| AI writes wrong SQL, makes up tables or columns | The model is too small. Use a local model with at least 8 to 9 billion parameters, or a cloud model. This is not a plugin bug. See [Choosing an AI model](#choosing-an-ai-model). |
+| AI is very slow | A local model that does not fit in GPU memory runs on the CPU. Use a smaller (but at least 8b) model, or a cloud model. |
 | Something else went wrong | The launcher writes details to `%TEMP%\modern-mysql-workbench.log`. Please attach it to a [bug report](https://github.com/laxmimerit/mysql-workbench-plugin/issues/new/choose). |
 
 ## Repository layout
