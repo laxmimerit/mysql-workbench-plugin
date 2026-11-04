@@ -1,6 +1,6 @@
 # Workbench 26 notebook makeover (2026-11-04)
 
-## BUILT: plugin v4 (2026-11-04), see `D:\Apps\kgptalkie-mysql-workbench-plugin\`
+## BUILT: plugin v4 (2026-11-04), see the repository root
 - `plugin/kgp-plugin.js` v4: everything below (steps 1-4) works, tested in the hidden test instance against the
   throwaway server: per-cell line numbers, hover/focus play button, notebook bar (+ Cell, Run All, Clear All
   Outputs), cell bar (up, down, add below, delete). Run All skips empty and `\` cells and stops at the first error.
@@ -62,7 +62,7 @@
   makes Workbench open a new connection page (asks the password when it is not saved), same as File > Open.
 
 ## Done
-- Jupyter-style notebook (VS Code look) in `scout/wb-theme.js`: one rounded box per statement, count `[n]` / `[*]` / `[ ]` at the left, results on white, green tick before the kept status line "OK, N records retrieved in X ms", wrapped errors on a soft red panel, blue outline and side bar on the focused cell. Also everything from the approved `wb-look.js` (top bar hidden, result toolbar hidden, 9 px status, fitted results, wheel scroll). Tested: single-line and multi-line cells, tables, errors, the running state. Screens: `notebook-before-after.png`, `notebook-after-errors-multiline.png`.
+- Jupyter-style notebook (VS Code look) in `docs/internals/wb-theme.js`: one rounded box per statement, count `[n]` / `[*]` / `[ ]` at the left, results on white, green tick before the kept status line "OK, N records retrieved in X ms", wrapped errors on a soft red panel, blue outline and side bar on the focused cell. Also everything from the approved `wb-look.js` (top bar hidden, result toolbar hidden, 9 px status, fitted results, wheel scroll). Tested: single-line and multi-line cells, tables, errors, the running state. Screens: `notebook-before-after.png`, `notebook-after-errors-multiline.png`.
 - Test driver: Workbench started with `--remote-debugging-port=9229 --remote-allow-origins=http://127.0.0.1:9229` (127.0.0.1 only), then `tools/cdp.py` runs JS (`-f file`), screenshots the page (`--shot`) and sends page-only mouse, keys and text (`--click/--move/--rclick/--key/--type`). No keystrokes reach other windows.
 
 ## To do, in order (the creator asked for all of these)

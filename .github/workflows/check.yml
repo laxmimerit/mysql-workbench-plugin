@@ -1,0 +1,45 @@
+name: Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: npm ci
+
+      - name: Plugin syntax
+        run: node --check plugin/kgp-plugin.js
+
+      - name: Python syntax
+        run: python -m py_compile package/kgp_workbench.py package/make_icon.py launch.py tools/cdp.py
+
+      - name: Keyword lists match sql-formatter
+        run: |
+          npm run keywords
+          git diff --exit-code -- plugin/kgp-plugin.js
+
+      - name: No em dashes in copy
+        run: |
+          if git grep -nI $'—' -- . ':!LICENSE' ':!THIRD-PARTY-NOTICES.txt' ':!package-lock.json'; then
+            echo "Em dashes found (house style: none)."; exit 1
+          fi
