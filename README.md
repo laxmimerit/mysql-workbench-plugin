@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/images/logo.png" alt="Modern MySQL Workbench logo" width="128" height="128">
+<img src="docs/images/logo.png" alt="MySQL Workbench icon with the Modern MySQL Workbench notebook badge (see Trademarks)" width="128" height="128">
 
 # Modern MySQL Workbench
 
@@ -295,3 +295,9 @@ it, keep the NOTICE file with it. Third-party licenses are in [THIRD-PARTY-NOTIC
 The license covers the code, not the names. "KGP Talkie" and its logo are not licensed for use by forks; if you
 publish a fork, give it your own name. MySQL and MySQL Workbench are trademarks of Oracle and/or its affiliates. This
 plugin is not made, endorsed or supported by Oracle.
+
+About the logo: the dolphin icon at the top of this page is the MySQL Workbench icon, a trademark of Oracle. It is
+shown only to make clear which program this plugin works with. The part that belongs to this project is the small
+badge in the corner (the database and the notebook card). The installer does not ship Oracle's icon: it makes the
+shortcut icon on your PC from the MySQL Workbench you already have installed, and adds the badge. If Oracle asks,
+the logo will be changed.
