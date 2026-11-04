@@ -59,7 +59,7 @@ def check_clean(label, reason_has):
     check(f"{label}: nothing of the plugin left on the page", not r["leftover"] and not r["styles"], json.dumps(r["leftover"]))
     check(f"{label}: editor options back to Workbench's own", r["lineNumbers"] and r["lineHeight"] and r["decoWidth"])
     check(f"{label}: SQL runner unhooked, loop stopped", not r["hooked"] and not r["loop"])
-    check(f"{label}: note shown, no em dash", "is turned off" in r["note"] and "—" not in r["note"], r["note"][:120])
+    check(f"{label}: note shown, no em dash", "is turned off" in r["note"] and chr(0x2014) not in r["note"], r["note"][:120])
     check(f"{label}: off flag stored with the reason", bool(r["flag"]) and reason_has in r["flag"].get("reason", ""), json.dumps(r["flag"]))
     return r
 
