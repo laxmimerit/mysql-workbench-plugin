@@ -1,15 +1,15 @@
-KGP Talkie MySQL Workbench plugin
+Modern MySQL Workbench, a MySQL Workbench plugin by KGP Talkie
 Copyright 2026 KGP Talkie
 
 This product includes software developed by KGP Talkie
-(https://github.com/laxmimerit/kgptalkie-mysql-workbench-plugin).
+(https://github.com/laxmimerit/mysql-workbench-plugin).
 
 Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
 If you redistribute this software, or a work based on it, Section 4(d) of the
 license requires you to keep this NOTICE file with it. Please also credit
-"KGP Talkie MySQL Workbench plugin by KGP Talkie" with a link to
-https://github.com/laxmimerit/kgptalkie-mysql-workbench-plugin where you
+"Modern MySQL Workbench by KGP Talkie" with a link to
+https://github.com/laxmimerit/mysql-workbench-plugin where you
 describe your work.
 
 The license does not grant permission to use the name "KGP Talkie" or its

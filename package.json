@@ -2,7 +2,7 @@
   "name": "mysql-workbench-plugin",
   "version": "10.0.0",
   "private": true,
-  "description": "KGP Talkie MySQL Workbench plugin: a Jupyter-style notebook, AI and results tools for MySQL Workbench 26",
+  "description": "Modern MySQL Workbench by KGP Talkie: a Jupyter-style notebook, AI and results tools for MySQL Workbench 26",
   "license": "Apache-2.0",
   "author": "KGP Talkie (Laxmi Kant)",
   "homepage": "https://github.com/laxmimerit/mysql-workbench-plugin#readme",
@@ -15,7 +15,7 @@
   },
   "scripts": {
     "keywords": "node tools/gen-keywords.mjs",
-    "check": "node --check plugin/kgp-plugin.js && py -m py_compile package/kgp_workbench.py launch.py"
+    "check": "node --check plugin/kgptalkie-plugin.js && py -m py_compile package/kgptalkie_workbench.py launch.py"
   },
   "devDependencies": {
     "sql-formatter": "15.9.0"

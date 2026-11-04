@@ -1,38 +1,38 @@
-"""Workbench (KGP): one exe that installs, launches and serves the KGP notebook plugin for MySQL Workbench 26.
+"""Modern MySQL Workbench: one exe that installs, launches and serves the KGP Talkie notebook plugin for MySQL Workbench 26.
 
-    Workbench-KGP-Setup.exe              asks once, installs to %LOCALAPPDATA%\\Programs\\Workbench KGP,
-                                         adds a "Workbench (KGP)" shortcut to the Desktop and Start menu and an
+    Modern-MySQL-Workbench-Setup.exe     asks once, installs to %LOCALAPPDATA%\\Programs\\Modern MySQL Workbench,
+                                         adds a "Modern MySQL Workbench" shortcut to the Desktop and Start menu and an
                                          entry in Settings > Apps (uninstall)
-    Workbench KGP.exe (installed copy)   starts the plugin server if needed, then opens Workbench with its own
+    Modern MySQL Workbench.exe (installed copy)   starts the plugin server if needed, then opens Workbench with its own
                                          --renderer-url switch. MySQL Workbench itself is never modified.
     --serve [--port N]                   the plugin server (the launcher starts it in the background; it stops by
                                          itself a few minutes after the last Workbench window closes)
     --install [--target DIR] [--no-shortcuts] [--quiet]
     --uninstall [--quiet]
 
-The server binds 127.0.0.1 only. /kgp/fs/list|read|home feed the Explorer panel: read-only, only for Workbench's own
-pages (Origin http://127.0.0.1:<port> or app://renderer), only with the X-KGP header (any other web page needs a CORS
+The server binds 127.0.0.1 only. /kgptalkie/fs/list|read|home feed the Explorer panel: read-only, only for Workbench's own
+pages (Origin http://127.0.0.1:<port> or app://renderer), only with the X-KGPTalkie header (any other web page needs a CORS
 preflight, which is refused) and only for Host 127.0.0.1:<port> (no DNS rebinding).
 """
 import argparse, base64, ctypes, http.server, json, os, pathlib, shutil, socketserver, subprocess, sys, tempfile, threading, time, traceback
 import urllib.error, urllib.request, winreg
 from urllib.parse import parse_qs, urlsplit
 
-APP = "Workbench (KGP)"
-EXE_NAME = "Workbench KGP.exe"
+APP = "Modern MySQL Workbench"
+EXE_NAME = "Modern MySQL Workbench.exe"
 VERSION = "10.0"
 PORT = 9241
 LOCAL = os.environ["LOCALAPPDATA"]
-DEFAULT_TARGET = os.path.join(LOCAL, "Programs", "Workbench KGP")
-UNINST_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\WorkbenchKGP"
-MARK = b"KGP Workbench plugin"
+DEFAULT_TARGET = os.path.join(LOCAL, "Programs", "Modern MySQL Workbench")
+UNINST_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\ModernMySQLWorkbench"
+MARK = b"Modern MySQL Workbench plugin"            # in the first line of plugin/kgptalkie-plugin.js
 NO_WINDOW, DETACHED, NEW_GROUP = 0x08000000, 0x00000008, 0x00000200
 FROZEN = getattr(sys, "frozen", False)
 SELF = sys.executable if FROZEN else os.path.abspath(__file__)
 HOME_DIR = os.path.dirname(SELF)
 BUNDLE = getattr(sys, "_MEIPASS", HOME_DIR)
 INFO = os.path.join(HOME_DIR, "install.json")
-LOG = os.path.join(os.environ.get("TEMP", HOME_DIR), "workbench-kgp.log")
+LOG = os.path.join(os.environ.get("TEMP", HOME_DIR), "modern-mysql-workbench.log")
 
 QUIET = False
 
@@ -46,15 +46,15 @@ def box(msg, flags=0x40):
 
 def bundled_plugin():
     for d in (os.path.join(BUNDLE, "plugin"), os.path.join(HOME_DIR, "..", "plugin")):
-        if os.path.isfile(os.path.join(d, "kgp-plugin.js")):
+        if os.path.isfile(os.path.join(d, "kgptalkie-plugin.js")):
             return os.path.abspath(d)
-    raise FileNotFoundError("kgp-plugin.js is missing from this package")
+    raise FileNotFoundError("kgptalkie-plugin.js is missing from this package")
 
 
 def plugin_dir():
     """The installed copy serves plugin\\ next to the exe (easy to update); otherwise the bundled file."""
     d = os.path.join(HOME_DIR, "plugin")
-    return d if os.path.isfile(os.path.join(d, "kgp-plugin.js")) else bundled_plugin()
+    return d if os.path.isfile(os.path.join(d, "kgptalkie-plugin.js")) else bundled_plugin()
 
 
 def find_wb():
@@ -82,7 +82,7 @@ def find_edge():
 
 
 # ------------------------------------------------------------------ AI (keys never reach the page)
-AI_DIR = os.environ.get("KGP_AI_DIR") or os.path.join(os.environ.get("APPDATA", HOME_DIR), "Workbench KGP")
+AI_DIR = os.environ.get("KGPTALKIE_AI_DIR") or os.path.join(os.environ.get("APPDATA", HOME_DIR), "Modern MySQL Workbench")
 AI_FILE = os.path.join(AI_DIR, "ai.json")
 ai_lock = threading.Lock()
 PROVIDERS = {
@@ -176,7 +176,7 @@ def ai_update(c, body):
 
 
 def _http(url, body=None, headers=None, timeout=300):
-    h = {"User-Agent": "WorkbenchKGP/" + VERSION, **(headers or {})}
+    h = {"User-Agent": "ModernMySQLWorkbench/" + VERSION, **(headers or {})}
     data = None
     if body is not None:
         data = json.dumps(body).encode("utf-8")
@@ -265,7 +265,7 @@ def ai_stream(c, body):
     url = {"openai": "https://api.openai.com/v1", "openrouter": "https://openrouter.ai/api/v1"}.get(p, base)
     hdr = {"Authorization": f"Bearer {key or 'not-needed'}"}
     if p == "openrouter":
-        hdr.update({"HTTP-Referer": "https://kgptalkie.com", "X-Title": "Workbench (KGP)"})
+        hdr.update({"HTTP-Referer": "https://kgptalkie.com", "X-Title": "Modern MySQL Workbench"})
     r = _http(url + "/chat/completions", {"model": model, "messages": msgs, "stream": True}, hdr)
     for line in r:
         line = line.decode("utf-8", "replace").strip()
@@ -288,7 +288,7 @@ def serve(port):
     if not front:
         raise SystemExit("MySQL Workbench 26 not found")
     plug = plugin_dir()
-    tag = b'<script src="/kgp/kgp-plugin.js"></script>\n</head>'
+    tag = b'<script src="/kgptalkie/kgptalkie-plugin.js"></script>\n</head>'
     hide = {".git", ".svn", ".hg", ".DS_Store", "Thumbs.db", "desktop.ini", "__pycache__"}
     can_open = {".sql", ".mysql", ".js", ".ts", ".mysql-notebook", ".sqlnb"}
     max_read = 20 * 1024 * 1024
@@ -304,8 +304,8 @@ def serve(port):
 
         def translate_path(self, path):
             p = path.split("?", 1)[0].split("#", 1)[0]
-            if p.startswith("/kgp/"):
-                return os.path.join(plug, os.path.normpath(p[5:]).lstrip("\\/."))
+            if p.startswith("/kgptalkie/"):
+                return os.path.join(plug, os.path.normpath(p[len("/kgptalkie/"):]).lstrip("\\/."))
             return super().translate_path(path)
 
         def _origin_ok(self):
@@ -325,26 +325,26 @@ def serve(port):
             self.wfile.write(b)
 
         def do_OPTIONS(self):
-            if (not self.path.startswith(("/kgp/fs/", "/kgp/ai/", "/kgp/doc/")) or not self._origin_ok()
+            if (not self.path.startswith(("/kgptalkie/fs/", "/kgptalkie/ai/", "/kgptalkie/doc/")) or not self._origin_ok()
                     or not self.headers.get("Origin")):
                 self.send_response(403); self.end_headers(); return
             self.send_response(204)
             self.send_header("Access-Control-Allow-Origin", self.headers["Origin"])
-            self.send_header("Access-Control-Allow-Headers", "X-KGP, Content-Type")
+            self.send_header("Access-Control-Allow-Headers", "X-KGPTalkie, Content-Type")
             self.send_header("Access-Control-Allow-Methods", "GET, POST")
             self.send_header("Vary", "Origin")
             self.end_headers()
 
         def do_POST(self):
-            if self.path.startswith("/kgp/ai/"):
+            if self.path.startswith("/kgptalkie/ai/"):
                 return self.ai("POST")
-            if self.path.split("?", 1)[0] == "/kgp/doc/pdf":
+            if self.path.split("?", 1)[0] == "/kgptalkie/doc/pdf":
                 return self.pdf()
             return self._send(404, '{"error":"unknown request"}')
 
         def pdf(self):
             """Notebook export to PDF: the page sends the exported HTML, headless Edge prints it, base64 PDF comes back."""
-            if not self._origin_ok() or self.headers.get("X-KGP") != "1":
+            if not self._origin_ok() or self.headers.get("X-KGPTalkie") != "1":
                 return self._send(403, '{"error":"forbidden"}')
             try:
                 n = int(self.headers.get("Content-Length") or 0)
@@ -354,7 +354,7 @@ def serve(port):
                 edge = find_edge()
                 if not edge:
                     raise ValueError("Microsoft Edge was not found, so PDF export is not available")
-                with tempfile.TemporaryDirectory(prefix="kgp-pdf-") as d:
+                with tempfile.TemporaryDirectory(prefix="kgptalkie-pdf-") as d:
                     src, out = os.path.join(d, "notebook.html"), os.path.join(d, "notebook.pdf")
                     with open(src, "w", encoding="utf-8") as f:
                         f.write(html)
@@ -372,9 +372,9 @@ def serve(port):
                 return self._send(400, json.dumps({"error": _err(e)}))
 
         def ai(self, method):
-            if not self._origin_ok() or self.headers.get("X-KGP") != "1":
+            if not self._origin_ok() or self.headers.get("X-KGPTalkie") != "1":
                 return self._send(403, '{"error":"forbidden"}')
-            op = urlsplit(self.path).path[len("/kgp/ai/"):]
+            op = urlsplit(self.path).path[len("/kgptalkie/ai/"):]
             try:
                 body = {}
                 if method == "POST":
@@ -421,9 +421,9 @@ def serve(port):
             return self._send(404, '{"error":"unknown request"}')
 
         def fs(self):
-            if not self._origin_ok() or self.headers.get("X-KGP") != "1":
+            if not self._origin_ok() or self.headers.get("X-KGPTalkie") != "1":
                 return self._send(403, '{"error":"forbidden"}')
-            u = urlsplit(self.path); op = u.path[len("/kgp/fs/"):]; q = parse_qs(u.query)
+            u = urlsplit(self.path); op = u.path[len("/kgptalkie/fs/"):]; q = parse_qs(u.query)
             path = os.path.normpath(q.get("path", [""])[0])
             if op == "home":
                 return self._send(200, json.dumps({"path": os.path.expanduser("~")}))
@@ -465,12 +465,12 @@ def serve(port):
 
         def do_GET(self):
             p = self.path.split("?", 1)[0]
-            if p.startswith("/kgp/fs/"):
+            if p.startswith("/kgptalkie/fs/"):
                 return self.fs()
-            if p.startswith("/kgp/ai/"):
+            if p.startswith("/kgptalkie/ai/"):
                 return self.ai("GET")
-            if p == "/kgp/quit":      # used by install/uninstall to free the exe; never from a web page
-                if self.headers.get("Host") == host and not self.headers.get("Origin") and self.headers.get("X-KGP") == "1":
+            if p == "/kgptalkie/quit":      # used by install/uninstall to free the exe; never from a web page
+                if self.headers.get("Host") == host and not self.headers.get("Origin") and self.headers.get("X-KGPTalkie") == "1":
                     self._send(200, '{"ok":true}')
                     threading.Thread(target=srv.shutdown, daemon=True).start()
                     return
@@ -527,7 +527,7 @@ URL = f"http://127.0.0.1:{PORT}/"
 def ours():
     """True: our server answers. False: port free. None: something else holds the port."""
     try:
-        body = urllib.request.urlopen(URL + "kgp/kgp-plugin.js", timeout=2).read(400)
+        body = urllib.request.urlopen(URL + "kgptalkie/kgptalkie-plugin.js", timeout=2).read(400)
         return True if MARK in body else None
     except urllib.error.HTTPError:
         return None
@@ -539,9 +539,9 @@ def quit_server():
     if ours() is not True:
         return
     try:
-        urllib.request.urlopen(urllib.request.Request(URL + "kgp/quit", headers={"X-KGP": "1"}), timeout=3).read()
+        urllib.request.urlopen(urllib.request.Request(URL + "kgptalkie/quit", headers={"X-KGPTalkie": "1"}), timeout=3).read()
     except OSError:
-        return                       # an older server without /kgp/quit: leave it
+        return                       # an older server without /kgptalkie/quit: leave it
     for _ in range(25):
         if ours() is False:
             return
@@ -570,11 +570,11 @@ def start_server():
 def launch():
     exe, _ = find_wb()
     if not exe:
-        box("MySQL Workbench 26 was not found on this PC.\nInstall MySQL Workbench first, then open Workbench (KGP) again.", 0x10)
+        box("MySQL Workbench 26 was not found on this PC.\nInstall MySQL Workbench first, then open Modern MySQL Workbench again.", 0x10)
         return 1
     state = ours()
     if state is None:
-        box(f"Port {PORT} is in use by another program, so the KGP plugin was not started.\n"
+        box(f"Port {PORT} is in use by another program, so the Modern MySQL Workbench plugin was not started.\n"
             "Close that program, or open MySQL Workbench from its normal shortcut.", 0x10)
         return 1
     if state is False:
@@ -584,12 +584,12 @@ def launch():
             if ours():
                 break
         else:
-            box("The KGP plugin server did not start, so Workbench was not opened.", 0x10)
+            box("The plugin server did not start, so Workbench was not opened.", 0x10)
             return 1
     plain = [c for c in wb_main_cmdlines() if f"--renderer-url={URL}" not in c]
     if plain:
         box("MySQL Workbench is already open without the plugin.\n"
-            "Close it (File > Exit), then open Workbench (KGP) again.", 0x30)
+            "Close it (File > Exit), then open Modern MySQL Workbench again.", 0x30)
         return 1
     subprocess.Popen([exe, f"--renderer-url={URL}"], creationflags=DETACHED, close_fds=True)
     return 0
@@ -606,7 +606,7 @@ def make_lnk(lnk, target_exe, workdir):
     q = lambda s: s.replace("'", "''")
     ps = (f"$s=(New-Object -ComObject WScript.Shell).CreateShortcut('{q(lnk)}');$s.TargetPath='{q(target_exe)}';"
           f"$s.WorkingDirectory='{q(workdir)}';$s.IconLocation='{q(target_exe)},0';"
-          "$s.Description='MySQL Workbench with the KGP notebook plugin';$s.Save()")
+          "$s.Description='MySQL Workbench with the KGP Talkie notebook plugin';$s.Save()")
     subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps], creationflags=NO_WINDOW,
                    capture_output=True, timeout=60, check=True)
 
@@ -633,7 +633,7 @@ def install(target, shortcuts):
                     raise
                 time.sleep(0.5)
     os.makedirs(os.path.join(target, "plugin"), exist_ok=True)
-    shutil.copy2(os.path.join(bundled_plugin(), "kgp-plugin.js"), os.path.join(target, "plugin", "kgp-plugin.js"))
+    shutil.copy2(os.path.join(bundled_plugin(), "kgptalkie-plugin.js"), os.path.join(target, "plugin", "kgptalkie-plugin.js"))
     links = []
     if shortcuts:
         for folder in (shell_folder(0x10), shell_folder(0x02)):        # Desktop, Start menu > Programs

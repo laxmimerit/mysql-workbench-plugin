@@ -1,10 +1,10 @@
 <div align="center">
 
-# KGP Talkie MySQL Workbench plugin
+# Modern MySQL Workbench
 
 **A Jupyter-style notebook for MySQL Workbench 26, with AI, result charts, exports and a VS Code-style workspace.**
 
-It runs on top of your installed Workbench and does not change a single Workbench file.
+A free plugin by KGP Talkie. It runs on top of your installed Workbench and does not change a single Workbench file.
 
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 ![Platform: Windows 10 and 11](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6.svg)
@@ -99,29 +99,29 @@ It runs on top of your installed Workbench and does not change a single Workbenc
 
 ## Install
 
-1. Download `Workbench-KGP-Setup.exe` from the
+1. Download `Modern-MySQL-Workbench-Setup.exe` from the
    [Releases page](https://github.com/laxmimerit/mysql-workbench-plugin/releases) (or build it, see
    [Development](#development)).
-2. Run it. It installs for your user only, in `%LOCALAPPDATA%\Programs\Workbench KGP`, and adds a
-   **Workbench (KGP)** shortcut to the Desktop and the Start menu.
-3. Open **Workbench (KGP)**.
+2. Run it. It installs for your user only, in `%LOCALAPPDATA%\Programs\Modern MySQL Workbench`, and
+   adds a **Modern MySQL Workbench** shortcut to the Desktop and the Start menu.
+3. Open **Modern MySQL Workbench**.
 
 Plain MySQL Workbench stays exactly as it was and still opens from its own shortcut. Workbench allows one window per
-profile, so close plain Workbench before you open Workbench (KGP).
+profile, so close plain Workbench before you open Modern MySQL Workbench.
 
 ## Update and uninstall
 
-- **Update:** run the new `Workbench-KGP-Setup.exe`. It replaces the installed copy and keeps your settings and AI
+- **Update:** run the new `Modern-MySQL-Workbench-Setup.exe`. It replaces the installed copy and keeps your settings and AI
   configuration.
-- **Uninstall:** Settings > Apps > Installed apps > Workbench (KGP) > Uninstall. This removes the program folder, the
+- **Uninstall:** Settings > Apps > Installed apps > Modern MySQL Workbench > Uninstall. This removes the program folder, the
   shortcuts and the Apps entry. MySQL Workbench is not touched. Your AI settings stay in
-  `%APPDATA%\Workbench KGP`; delete that folder too if you want them gone.
+  `%APPDATA%\Modern MySQL Workbench`; delete that folder too if you want them gone.
 
 ## How it works
 
-MySQL Workbench 26 is an Electron app whose launcher accepts a `--renderer-url` option. The Workbench (KGP) shortcut
+MySQL Workbench 26 is an Electron app whose launcher accepts a `--renderer-url` option. The Modern MySQL Workbench shortcut
 starts a small local server on `127.0.0.1:9241` and opens Workbench with that option. The server hands Workbench its
-own installed frontend, read-only, with one extra `<script>`: `plugin/kgp-plugin.js`. Nothing in the Workbench
+own installed frontend, read-only, with one extra `<script>`: `plugin/kgptalkie-plugin.js`. Nothing in the Workbench
 install folder is modified, and the server stops by itself a few minutes after the last Workbench window closes.
 
 `docs/internals/NOTEBOOK-PLAN.md` explains the Workbench internals the plugin relies on, and
@@ -132,7 +132,7 @@ install folder is modified, and the server stops by itself a few minutes after t
 - The plugin server listens on `127.0.0.1` only. Its file, AI and PDF endpoints answer Workbench's own page only
   (origin and host checks plus a custom header, so other web pages are refused).
 - The Explorer reads files only; it never writes or deletes.
-- AI API keys are stored with Windows DPAPI in `%APPDATA%\Workbench KGP\ai.json`, readable only by your Windows
+- AI API keys are stored with Windows DPAPI in `%APPDATA%\Modern MySQL Workbench\ai.json`, readable only by your Windows
   account. They are never sent to the page and never written into notebooks.
 - AI requests go from the local server straight to the provider you choose. Result rows are sent only after you
   agree (or when you pick a local model or "Always allow").
@@ -145,21 +145,21 @@ Found a security problem? See [SECURITY.md](SECURITY.md).
 | Problem | What to do |
 |---|---|
 | "Port 9241 is in use by another program" | Another program holds the port. Close it, or open plain Workbench from its own shortcut. |
-| "MySQL Workbench is already open without the plugin" | Close Workbench (File > Exit), then open Workbench (KGP) again. |
+| "MySQL Workbench is already open without the plugin" | Close Workbench (File > Exit), then open Modern MySQL Workbench again. |
 | "MySQL Workbench 26 was not found" | Install MySQL Workbench 26 first. The plugin looks in `%LOCALAPPDATA%\Programs` and `Program Files`. |
 | PDF export fails | PDF export uses Microsoft Edge. Check that Edge is installed. |
-| Something else went wrong | The launcher writes details to `%TEMP%\workbench-kgp.log`. Please attach it to a [bug report](https://github.com/laxmimerit/mysql-workbench-plugin/issues/new/choose). |
+| Something else went wrong | The launcher writes details to `%TEMP%\modern-mysql-workbench.log`. Please attach it to a [bug report](https://github.com/laxmimerit/mysql-workbench-plugin/issues/new/choose). |
 
 ## Repository layout
 
 | Path | What it is |
 |---|---|
-| `plugin/kgp-plugin.js` | The plugin: everything that runs inside Workbench |
-| `package/kgp_workbench.py` | One program that is the installer, the launcher and the local server |
-| `package/build.ps1` | Builds `package/dist/Workbench-KGP-Setup.exe` with PyInstaller |
+| `plugin/kgptalkie-plugin.js` | The plugin: everything that runs inside Workbench |
+| `package/kgptalkie_workbench.py` | One program that is the installer, the launcher and the local server |
+| `package/build.ps1` | Builds `package/dist/Modern-MySQL-Workbench-Setup.exe` with PyInstaller |
 | `launch.py` | Starts the server from this folder and opens Workbench with the plugin (development) |
 | `tools/` | `gen-keywords.mjs` (MySQL keyword lists from sql-formatter), `cdp.py` and `snap.js` (drive a Workbench started with a debug port) |
-| `test-mysql/my.ini` | Settings for the throwaway MySQL server used in tests |
+| `tests/` | The hidden test environment and the tests (see [tests/README.md](tests/README.md)) |
 | `docs/` | Feature map, notes on Workbench internals, screenshots |
 | `.github/` | Issue and pull request templates, CI checks |
 
@@ -174,7 +174,7 @@ npm run keywords
 py launch.py
 ```
 
-`npm run keywords` rewrites the block between `KEYWORDS:BEGIN` and `KEYWORDS:END` in `plugin/kgp-plugin.js`. Run it
+`npm run keywords` rewrites the block between `KEYWORDS:BEGIN` and `KEYWORDS:END` in `plugin/kgptalkie-plugin.js`. Run it
 after updating sql-formatter. `npm run check` checks the syntax of the plugin and the Python programs.
 
 Build the installer:
@@ -183,8 +183,8 @@ Build the installer:
 powershell -File package/build.ps1
 ```
 
-Risky changes are tested in a separate, hidden Workbench with its own profile and a throwaway MySQL server, never in
-your everyday Workbench.
+Every change is tested in a separate, hidden Workbench with its own profile and a throwaway MySQL server, never in
+your everyday Workbench. See [tests/README.md](tests/README.md).
 
 ## Contributing
 

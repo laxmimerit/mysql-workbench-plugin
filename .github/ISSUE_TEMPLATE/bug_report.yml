@@ -28,7 +28,7 @@ body:
     id: plugin
     attributes:
       label: Plugin version
-      description: Settings > Apps > Workbench (KGP) shows it.
+      description: Settings > Apps > Modern MySQL Workbench shows it.
       placeholder: "10.0"
     validations:
       required: true
@@ -56,4 +56,4 @@ body:
     id: log
     attributes:
       label: Log and screenshots
-      description: The contents of %TEMP%\workbench-kgp.log if it exists, and screenshots if they help.
+      description: The contents of %TEMP%\modern-mysql-workbench.log if it exists, and screenshots if they help.

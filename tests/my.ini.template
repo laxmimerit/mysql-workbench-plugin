@@ -1,0 +1,9 @@
+; Throwaway MySQL server for the tests. tests/testenv.ps1 writes test-mysql/my.ini from this file.
+[mysqld]
+basedir="{{BASEDIR}}"
+datadir="{{DIR}}/data"
+port=3310
+bind-address=127.0.0.1
+mysqlx=OFF
+log-error="{{DIR}}/error.log"
+pid-file="{{DIR}}/mysqld.pid"

@@ -1,4 +1,4 @@
-# SQL Notebook Studio features to bring into Workbench (KGP)
+# SQL Notebook Studio features to bring into Modern MySQL Workbench
 
 Reference: `D:\Apps\sql-notebook` (the creator's finished VS Code extension). READ-ONLY: never change it.
 Scope (creator, 2026-11-04): every feature that applies to MySQL, including all AI features. Ignore DuckDB, SQLite,
@@ -6,11 +6,11 @@ PostgreSQL, SQL Server. Workbench already does connections (SSL/SSH, saved passw
 multi-statement result tabs; we add what it lacks.
 
 ## Plan (phases, in order) and status
-v8 (2026-11-04): AI done and tested in the hidden copy with Ollama qwen3.5:4b (explain, optimize with EXPLAIN FORMAT=TREE, fix, explain result, AI cell). AI cell = markdown context whose first line is `<!-- ai -->` (hidden); generated SQL cell starts with `-- AI-written from the cell above` and is replaced on re-run. Server: `package/kgp_workbench.py` is now the one source (installer, launcher, server); `server.py` is the old dev copy. Test AI config: env KGP_AI_DIR.
-v9 (2026-11-04): all phases done and tested in the hidden copy. Run All waits for every statement of a multi-statement cell (W.kgpSqlRunning).
+v8 (2026-11-04): AI done and tested in the hidden copy with Ollama qwen3.5:4b (explain, optimize with EXPLAIN FORMAT=TREE, fix, explain result, AI cell). AI cell = markdown context whose first line is `<!-- ai -->` (hidden); generated SQL cell starts with `-- AI-written from the cell above` and is replaced on re-run. Server: `package/kgptalkie_workbench.py` is now the one source (installer, launcher, server); `server.py` is the old dev copy. Test AI config: env KGPTALKIE_AI_DIR.
+v9 (2026-11-04): all phases done and tested in the hidden copy. Run All waits for every statement of a multi-statement cell (W.kgptalkieSqlRunning).
 | # | Feature | Status |
 |---|---|---|
-| A1 | AI backend in the plugin server: OpenAI, Anthropic, OpenRouter, Ollama, Custom; keys DPAPI-encrypted in %APPDATA%\Workbench KGP\ai.json, never sent to the page; /kgp/ai/config, /models, /stream | done v8 |
+| A1 | AI backend in the plugin server: OpenAI, Anthropic, OpenRouter, Ollama, Custom; keys DPAPI-encrypted in %APPDATA%\Modern MySQL Workbench\ai.json, never sent to the page; /kgptalkie/ai/config, /models, /stream | done v8 |
 | A2 | Configure AI dialog (provider, base URL, key, model list, test "Say OK") | done v8 |
 | A3 | Cell menu: Explain, Optimize (EXPLAIN plan for single SELECT/WITH), Fix with AI on errors, Explain result (asks before sending 50 rows unless local model or Always allow) | done v8 |
 | A4 | AI cell: plain words -> SQL into the cell below (replaces a previous generated cell), optional auto-run | done v8 |
@@ -18,10 +18,10 @@ v9 (2026-11-04): all phases done and tested in the hidden copy. Run All waits fo
 | B1 | Result toolbar: Table/Chart, search, column filters, sort (click, ctrl-click adds), Copy (TSV, CSV, JSON, Markdown, INSERT), Save as CSV/JSON, Explain result | done v9 |
 | B2 | Chart: bar/line/area/scatter/pie, X, Y multi, stack, horizontal, saved per cell (keyed by the cell text) | done v9 |
 | B3 | Value viewer on double-click (pretty JSON, Copy) | done v9 |
-| C1 | {{name}} variables (session prompt, notebook-saved values win), {{env.NAME}} via /kgp/fs/env, Variables dialog | done v9 |
+| C1 | {{name}} variables (session prompt, notebook-saved values win), {{env.NAME}} via /kgptalkie/fs/env, Variables dialog | done v9 |
 | C2 | Safety: confirm DROP/TRUNCATE/DELETE-UPDATE without WHERE (production / always / never), Production and Read-only connection tags (chip in the bar) | done v9 |
 | C3 | Query timeout (KILL QUERY). Max rows = Workbench's own Result Set Page Size (sql.limitRowCount) | done v9 |
-| D1 | Export: HTML (charts inline), PDF (POST /kgp/doc/pdf, headless Edge), Markdown; export rows 500 | done v9 |
+| D1 | Export: HTML (charts inline), PDF (POST /kgptalkie/doc/pdf, headless Edge), Markdown; export rows 500 | done v9 |
 | D2 | .sqlnb export/import, .sql import (DELIMITER-aware, old /*markdown*/ blocks); import appends to the open notebook as one undo step | done v9 |
 | E1 | Schema tree (native menu): Select Top 100 in Notebook, Describe in Notebook; Copy Name is Workbench's own | done v9 |
 | E2 | Sample notebook (sample_shop) + Get Started (? in the bar). Completion: columns after alias/table (`c.`), dupes removed; any-case + fuzzy matching is Workbench's own (slt->SELECT, cstm->customers, CIT->city) | done v9 |

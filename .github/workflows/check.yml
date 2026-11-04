@@ -28,15 +28,15 @@ jobs:
         run: npm ci
 
       - name: Plugin syntax
-        run: node --check plugin/kgp-plugin.js
+        run: node --check plugin/kgptalkie-plugin.js
 
       - name: Python syntax
-        run: python -m py_compile package/kgp_workbench.py package/make_icon.py launch.py tools/cdp.py
+        run: python -m py_compile package/kgptalkie_workbench.py package/make_icon.py launch.py tools/cdp.py tests/*.py
 
       - name: Keyword lists match sql-formatter
         run: |
           npm run keywords
-          git diff --exit-code -- plugin/kgp-plugin.js
+          git diff --exit-code -- plugin/kgptalkie-plugin.js
 
       - name: No em dashes in copy
         run: |

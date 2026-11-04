@@ -2,6 +2,10 @@
 
 ## 10.0
 
+- New name: **Modern MySQL Workbench** (shortcut, installer `Modern-MySQL-Workbench-Setup.exe`, install folder and
+  Apps entry). AI settings now live in `%APPDATA%\Modern MySQL Workbench`.
+- Fixed: the launcher did not recognise its own plugin server, so it could report "port in use" or "server did not
+  start" instead of opening Workbench.
 - MySQL keywords turn into capitals as you type. Names, strings, comments, quoted names and `{{variables}}` are left
   alone, and one Ctrl+Z puts a word back. Keyword lists are generated from sql-formatter's MySQL dialect. On by
   default; Notebook Settings turns it off.

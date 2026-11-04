@@ -1,10 +1,10 @@
-/* KGP Talkie MySQL Workbench plugin v10 (2026-11-04) for MySQL Workbench 26.10.0.
+/* Modern MySQL Workbench plugin v10 (2026-11-05) by KGP Talkie, for MySQL Workbench 26.10.0.
    Copyright 2026 KGP Talkie (Laxmi Kant). Licensed under the Apache License 2.0; see LICENSE and NOTICE.
    v10: MySQL keywords in capitals as you type (word lists generated from sql-formatter, see tools/gen-keywords.mjs),
-   keyword case for autocomplete (UPPERCASE / lowercase / as typed), "Connection · MySQL x.y.z" on the notebook bar. Loaded by server.py through Workbench's own
+   keyword case for autocomplete (UPPERCASE / lowercase / as typed), "Connection · MySQL x.y.z" on the notebook bar. Loaded by package/kgptalkie_workbench.py through Workbench's own
    --renderer-url option; no Workbench file is changed.
    - Activity bar (VS Code): Explorer (a folder you open; .sql/.mysql/.js/.ts/.mysql-notebook open in Workbench),
-     Schemas, Administration, Oracle Cloud as full-height panels, Settings. Files come from server.py's read-only /kgp/fs/.
+     Schemas, Administration, Oracle Cloud as full-height panels, Settings. Files come from server.py's read-only /kgptalkie/fs/.
    - Recording look: top bar folded into a connection chip (click it to open the full bar), result toolbar hidden,
      9 px status line with a green tick, fitted results, wheel scrolling over results.
    - Jupyter-style notebook (VS Code look): one box per cell, line numbers, [n] / [*] / [ ] counts, play on hover.
@@ -31,189 +31,189 @@
    Safe to load again: it tears its previous copy down first. */
 (() => {
  const W = window;
- if (W.kgpLook) clearInterval(W.kgpLook); if (W.kgpRaf) cancelAnimationFrame(W.kgpRaf);
- if (W.kgpTeardown) { try { W.kgpTeardown(); } catch (e) { } }
+ if (W.kgptalkieLook) clearInterval(W.kgptalkieLook); if (W.kgptalkieRaf) cancelAnimationFrame(W.kgptalkieRaf);
+ if (W.kgptalkieTeardown) { try { W.kgptalkieTeardown(); } catch (e) { } }
  const AC = new AbortController(); const DISP = [];
  const NB = 24, SC = 24, CAP = 10, CAPB = 24, GAP = 22, GAP0 = 14, OUTPAD = 6, RIGHT = 18, TRAIL = 46;
  const MW = 104, BX = 70;           // gutter: focus bar 3-6, play 10-30, count 30-64 | box from 70, line numbers to 96, code from 104
  const C = { bg: '#F7F7F7', bd: '#E3E3E3', focus: '#3B82C4', count: '#8A8A8A', ln: '#A8A8A8', lnF: '#6B6B6B' };
  const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { } } };
- const P = W.kgpPrefs = { suggest: store.get('kgpSuggest', '1') === '1', bar: store.get('kgpTitleOpen', '0') === '1' };
- const barCls = () => { if (document.body) document.body.classList.toggle('kgpTitleOpen', P.bar); }; barCls();   // body may not exist yet when loaded from <head>
+ const P = W.kgptalkiePrefs = { suggest: store.get('kgptalkieSuggest', '1') === '1', bar: store.get('kgptalkieTitleOpen', '0') === '1' };
+ const barCls = () => { if (document.body) document.body.classList.toggle('kgptalkieTitleOpen', P.bar); }; barCls();   // body may not exist yet when loaded from <head>
  const css = `
-body:not(.kgpTitleOpen) #desktopWorkspaceTitlebar{display:none !important}
+body:not(.kgptalkieTitleOpen) #desktopWorkspaceTitlebar{display:none !important}
 .resultStatus > .toolbar{display:none !important}
 .resultStatus > .label{max-width:none !important;overflow:visible !important;color:#A3A3A3 !important;font-size:9px !important}
 .resultStatus{background-color:#FDFDFD !important}
 .scriptingConsole .editorPromptFirst::before,.scriptingConsole .editorPromptFirst::after,.scriptingConsole .statementStart::after{display:none !important}
 .scriptingConsole .margin-view-overlays .statementError::after{display:none !important}
-.scriptingConsole .view-overlays .kgpL{background:${C.bg};border-right:1px solid ${C.bd};box-sizing:border-box;width:calc(100% - ${RIGHT}px) !important}
-.scriptingConsole .view-overlays .kgpL.kgpF{border-right-color:${C.focus}}
+.scriptingConsole .view-overlays .kgptalkieL{background:${C.bg};border-right:1px solid ${C.bd};box-sizing:border-box;width:calc(100% - ${RIGHT}px) !important}
+.scriptingConsole .view-overlays .kgptalkieL.kgptalkieF{border-right-color:${C.focus}}
 .scriptingConsole .view-overlays{isolation:isolate}
-.scriptingConsole .view-overlays > div > div:not(.kgpL){z-index:1}
-.scriptingConsole .kgpM::after{content:'';position:absolute;left:${BX}px;right:0;top:0;bottom:0;background:${C.bg};border-left:1px solid ${C.bd}}
-.scriptingConsole .kgpM.kgpF::after{border-left-color:${C.focus}}
-.scriptingConsole .kgpM.kgpF::before{content:'';position:absolute;left:3px;width:3px;top:0;bottom:0;background:${C.focus};border-radius:2px}
-.scriptingConsole .kgpN::before{position:absolute;left:30px;width:34px;text-align:right;font-family:var(--msg-monospace-font-family),Consolas,monospace;font-size:11px;color:${C.count};line-height:${NB}px}
-.scriptingConsole .kgpN0::before{content:'[ ]'}
-.scriptingConsole .kgpNR::before{content:'[*]';color:${C.focus}}
-.scriptingConsole .kgpNM::before{content:'M\\2193';font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:10px;color:#9A9A9A}
-.scriptingConsole .kgpLn{z-index:1}
-.scriptingConsole .kgpLn::before{position:absolute;left:${BX + 2}px;width:${MW - BX - 10}px;text-align:right;font-family:var(--msg-monospace-font-family),Consolas,monospace;font-size:11px;color:${C.ln};line-height:${NB}px}
-.scriptingConsole .kgpLn.kgpF::before{color:${C.lnF}}
-.scriptingConsole .kgpP{left:10px !important;width:20px !important;cursor:pointer;z-index:2}
-.scriptingConsole .kgpP::before{content:'\\eb2c';font-family:codicon;font-size:16px;line-height:${NB}px;display:none;width:20px;text-align:center;color:#4A4A4A}
-.scriptingConsole .kgpP.kgpPV::before{display:block}
-.scriptingConsole .kgpP:hover::before{color:${C.focus}}
-.kgpCap{position:absolute;height:${CAP}px;background:${C.bg};border:0 solid ${C.bd};box-sizing:border-box}
-.kgpCap.t{bottom:0;border-top-width:1px}
-.kgpCap.b{top:0;border-bottom-width:1px}
-.kgpCap.c{left:0;right:${RIGHT}px;border-right-width:1px}
-.kgpCap.m{left:${BX}px;right:0;border-left-width:1px}
-.kgpCap.c.t{border-top-right-radius:6px}.kgpCap.m.t{border-top-left-radius:6px}
-.kgpCap.c.b{border-bottom-right-radius:6px}.kgpCap.m.b{border-bottom-left-radius:6px}
-.kgpCap.kgpF{border-color:${C.focus}}
-.kgpBar{position:absolute;left:3px;width:3px;background:${C.focus};border-radius:2px;display:none}
-.kgpBar.kgpF{display:block}
-.kgpBar.t{bottom:0;height:${CAP}px}.kgpBar.b{top:0;height:${CAPB}px}
-.kgpCap.b{height:${CAPB}px}
-.kgpGap{position:absolute;left:0;right:${RIGHT}px;top:0}
-.kgpIns{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);display:none;justify-content:center;gap:8px;z-index:2}
-.kgpGap:hover .kgpIns,.kgpTrail .kgpIns{display:flex}
-.kgpTrail .kgpIns{opacity:.8}.kgpTrail .kgpIns:hover{opacity:1}
-.kgpIns button{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 9px;border:1px solid #D9D9D9;border-radius:4px;background:#fff;color:#444;cursor:pointer;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:11.5px}
-.kgpIns button:hover{border-color:${C.focus};color:${C.focus}}
-.kgpIns .codicon{font-size:12px}
-.kgpCellBar{position:absolute;right:${RIGHT + 14}px;height:22px;display:none;align-items:center;padding:0 2px;background:#fff;border:1px solid #DDDDDD;border-radius:5px;box-shadow:0 1px 3px rgba(0,0,0,.08);z-index:3}
-.kgpCellBar.kgpShow,.kgpCellBar.kgpMenuOpen{display:flex}
-.kgpCellBar button,.kgpNbBar button,.kgpChip{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:#4A4A4A;border-radius:4px}
-.kgpCellBar button{width:24px;height:18px}
-.kgpCellBar button:hover,.kgpNbBar button:hover{background:#EBEEF2;color:#111}
-.kgpCellBar .codicon{font-size:14px}
-.kgpNbBar{flex:0 0 auto;display:flex;align-items:center;gap:2px;height:34px;padding:0 12px 0 ${BX - 8}px;background:#fff;border-bottom:1px solid #EDEDED;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:12px}
-.kgpNbBar button{gap:6px;padding:4px 9px;height:24px;white-space:nowrap;flex:0 0 auto}
-.kgpNbBar .codicon{font-size:14px}
-.kgpSink{position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;overflow:hidden;outline:none}
-.kgpNbBar{position:relative}
-.kgpNbBar .kgpSep{width:1px;height:16px;background:#E0E0E0;margin:0 6px}
-.kgpNbBar button.kgpBusy{color:${C.focus}}
-.kgpNbBar button.kgpOff{color:#9A9A9A}
-.kgpMenu{position:fixed;z-index:10000;min-width:230px;padding:4px 0;background:#fff;border:1px solid #D9D9D9;border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.14);font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:12.5px;color:#222}
-.kgpMenu .it{display:flex;align-items:center;gap:18px;justify-content:space-between;padding:4px 14px;cursor:pointer;white-space:nowrap}
-.kgpMenu .it:hover{background:#E8F0FA}
-.kgpMenu .it.dis{color:#B0B0B0;pointer-events:none}
-.kgpMenu .it .k{color:#8A8A8A;font-size:11px}
-.kgpMenu .sep{height:1px;background:#EAEAEA;margin:4px 0}
-.kgpLang{all:unset;position:absolute;right:${RIGHT + 8}px;bottom:4px;height:16px;line-height:16px;padding:0 6px;border-radius:3px;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:11px;color:#8A8A8A;cursor:pointer;z-index:2;user-select:none}
-.kgpMdWrap .kgpLang{right:8px}
-.kgpLang.kgpLangAi{color:#7C3AED}
-.kgpNbBar .kgpSp{flex:1}
-.scriptingConsole .kgpL.kgpLA{background:#FBF9FF !important}
-.kgpAiHint{color:#A3A3A3 !important;font-style:italic}
-.kgpAiZone{box-sizing:border-box;padding:6px ${RIGHT}px 10px 0;cursor:auto}
-.kgpAi{border:1px solid #E7E0F5;border-left:3px solid #8B5CF6;background:#FBF9FF;border-radius:0 6px 6px 0;padding:8px 12px 10px;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:12.5px;color:#2B2B2B;user-select:text}
-.kgpAi.kgpAi-error,.kgpAi.kgpAi-setup{border-left-color:#B42318;background:#FFFBFA}
-.kgpAiH{display:flex;align-items:center;gap:6px;height:22px;color:#5B3FA8;font-size:12px}
-.kgpAiH .codicon{font-size:14px}.kgpAiH b{font-weight:600}
-.kgpAiM{color:#8A8A8A;margin-left:4px;font-size:11.5px}
-.kgpAiH .kgpSp{flex:1}
-.kgpAiH button,.kgpAiActs button,.kgpFixBtn,.kgpResAi{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:5px;cursor:pointer;border-radius:4px;color:#4A4A4A;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:12px}
-.kgpAiH button{width:22px;height:22px;justify-content:center}
-.kgpAiH button:hover,.kgpAiActs button:hover,.kgpFixBtn:hover,.kgpResAi:hover{background:#EDE7FA;color:#3B2A80}
-.kgpAiB{margin-top:4px;font-size:12.5px;line-height:1.5}
-.kgpAiB p{margin:4px 0}.kgpAiB ul,.kgpAiB ol{margin:4px 0;padding-left:20px}
-.kgpAiB pre{background:#fff;border:1px solid #ECE7F6;border-radius:4px;padding:6px 8px;overflow:auto;font-size:12px}
-.kgpAiActs{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:8px}
-.kgpAiActs button{height:24px;padding:0 9px;border:1px solid #DDD3F2;background:#fff}
-.kgpAiNote{display:inline-flex;align-items:center;gap:4px;color:#5B3FA8;margin-right:6px}
-.kgpAiSk i{display:block;height:9px;margin:7px 0;border-radius:4px;background:#ECE6F7;animation:kgpPulse 1.2s ease-in-out infinite}
-.kgpAiSk i:nth-child(1){width:92%}.kgpAiSk i:nth-child(2){width:74%}.kgpAiSk i:nth-child(3){width:52%}
-@keyframes kgpPulse{50%{opacity:.45}}
-.kgpSpin{animation:kgpSpin 1s linear infinite}@keyframes kgpSpin{to{transform:rotate(360deg)}}
-.kgpFixBtn{margin:6px 0 2px 2px;height:24px;padding:0 9px;border:1px solid #DDD3F2;background:#fff;color:#5B3FA8}
-.kgpResAi{position:absolute;top:2px;right:6px;width:24px;height:22px;justify-content:center;z-index:5;color:#7C3AED;background:#fff}
-.scriptingConsole .renderTarget:has(> .kgpResBar){display:flex !important;flex-direction:column}
-.scriptingConsole .renderTarget:has(> .kgpResBar) > .resultHost{flex:1 1 auto;min-height:0}
-.scriptingConsole .renderTarget.kgpChartView > .resultHost{display:none !important}
-.kgpResBar{flex:0 0 auto;display:flex;align-items:center;gap:2px;height:30px;padding:0 4px 0 2px;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:12px;color:#555}
-.kgpResBar button,.kgpChartCtl button,.kgpViewerH button{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:26px;height:24px;padding:0 5px;border-radius:4px;cursor:pointer;color:#555}
-.kgpResBar button:hover,.kgpChartCtl button:hover,.kgpViewerH button:hover{background:#EBEEF2;color:#111}
-.kgpResBar button.on,.kgpChartCtl button.on{color:#005FB8;background:#E8F0FA}
-.kgpResBar [data-r=ai]{color:#7C3AED}
-.kgpSeg{display:inline-flex;border:1px solid #DCDCDC;border-radius:5px;padding:1px;margin-right:6px}
-.kgpSeg button{height:22px;padding:0 8px}
-.kgpSearch{box-sizing:border-box;width:170px;height:24px;padding:0 8px;border:1px solid #DCDCDC;border-radius:4px;font:inherit;font-size:12px;color:#222;background:#fff;outline:none;margin-right:2px}
-.kgpSearch:focus{border-color:#3B82C4}
-.kgpResBar .kgpSp,.kgpChartCtl .kgpSp,.kgpViewerH .kgpSp{flex:1}
-.kgpMeta{color:#8A8A8A;font-size:11.5px;margin-right:6px;white-space:nowrap}
-.kgpFRow{display:flex;gap:6px;padding:3px 3px;background:#FAFAFA;border-bottom:1px solid #E6E6E6;white-space:nowrap}
-.kgpFRow input{flex:0 0 auto;box-sizing:border-box;height:22px;padding:0 6px;border:1px solid #DCDCDC;border-radius:3px;font:inherit;font-size:11.5px;background:#fff;outline:none}
-.kgpFRow input:focus{border-color:#3B82C4}
-.kgpPin{font-size:12px !important;margin-left:4px;color:#9A9A9A;opacity:0;cursor:pointer;vertical-align:middle}
-.tabulator-col:hover .kgpPin,.kgpPin.on{opacity:1}.kgpPin.on{color:#005FB8}
-.kgpChartBox{flex:0 0 auto;padding:2px 2px 6px}
-.kgpChartCtl{display:flex;align-items:center;gap:2px;height:30px;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:12px;color:#555}
-.kgpChartCtl label{display:inline-flex;align-items:center;gap:4px;margin:0 4px 0 2px}
-.kgpChartCtl select{height:24px;border:1px solid #DCDCDC;border-radius:4px;font:inherit;font-size:12px;background:#fff;max-width:180px}
-.kgpChartCtl .kgpYBtn{border:1px solid #DCDCDC;max-width:260px;overflow:hidden;white-space:nowrap}
-.kgpSepV{width:1px;height:16px;background:#E0E0E0;margin:0 4px}
-.kgpChartCut{color:#8A8A8A;font-size:11.5px;margin-right:6px}
-.kgpChartSvg{padding-top:4px}.kgpChartSvg svg{display:block}
-.kgpChartMsg{padding:16px 8px;color:#8A8A8A;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:12.5px}
-.kgpViewer{flex:0 0 auto;margin:6px 2px 4px;border:1px solid #DCDCDC;border-radius:5px;background:#fff;outline:none;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:12px}
-.kgpViewerH{display:flex;align-items:center;gap:8px;height:30px;padding:0 4px 0 10px;border-bottom:1px solid #EEE;color:#8A8A8A}.kgpViewerH b{color:#222;font-weight:600}
-.kgpViewer pre{margin:0;padding:8px 10px;max-height:320px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-family:var(--msg-monospace-font-family,Consolas),monospace;font-size:12px;color:#222;user-select:text}
-.kgpNbToast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:10002;padding:7px 14px;border-radius:6px;background:#fff;border:1px solid #D9D9D9;box-shadow:0 3px 12px rgba(0,0,0,.14);font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:12.5px;color:#222;display:none}
-.kgpNbToast.on{display:block}
-.kgpDlgBack{position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center}
-.kgpDlg{width:460px;max-width:calc(100vw - 32px);background:#fff;border:1px solid #D9D9D9;border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.18);padding:16px 18px;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:13px;color:#222}
-.kgpDlgT{font-size:15px;font-weight:600;margin-bottom:10px}
-.kgpDlg p{margin:0 0 12px;line-height:1.45}
-.kgpDlg label{display:block;margin:10px 0 0;font-size:12px;color:#555}
-.kgpDlg label.chk{display:flex;gap:8px;align-items:flex-start;color:#333;font-size:12.5px}
-.kgpDlg select,.kgpDlg input:not([type=checkbox]){display:block;box-sizing:border-box;width:100%;margin-top:4px;height:28px;padding:0 8px;border:1px solid #CFCFCF;border-radius:4px;font:inherit;font-size:13px;color:#222;background:#fff}
-.kgpDlgRow{display:flex;gap:6px;align-items:center}.kgpDlgRow input{flex:1}
-.kgpDlgHint{font-size:11.5px;color:#777;margin-top:4px;line-height:1.4}
-.kgpDlgHint code,.kgpVarRow code{font-family:var(--msg-monospace-font-family,Consolas),monospace;font-size:11.5px;background:#F3F3F3;border-radius:3px;padding:0 3px}
-.kgpDlgSub{margin:16px 0 0;padding-top:10px;border-top:1px solid #EAEAEA;font-size:12px;font-weight:600;color:#333}
-.kgpVarList{margin-top:10px;max-height:300px;overflow:auto}
-.kgpVarRow{display:grid;grid-template-columns:minmax(90px,auto) 1fr 92px;gap:8px;align-items:center;margin-top:6px}
-.kgpVarRow input{margin-top:0 !important}.kgpVarSrc{font-size:11px;color:#8A8A8A}
-.kgpVarAdd{margin-top:10px}.kgpVarAdd input{margin-top:0 !important}
-.kgpTag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:#EEF2F7;color:#40566E;margin-right:8px}
-.kgpTag.prod{background:#FDECEC;color:#B42318}.kgpTag.none{display:none}
-.kgpDb{font-size:11.5px;color:#6B6B6B;margin-right:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}.kgpDb:empty{display:none}
-.kgpSteps{margin:4px 0 8px;padding-left:20px;line-height:1.5}.kgpSteps li{margin:6px 0}
-.kgpSteps code{font-family:var(--msg-monospace-font-family,Consolas),monospace;font-size:11.5px;background:#F3F3F3;border-radius:3px;padding:0 3px}
-.kgpDlgStatus{min-height:18px;margin-top:12px;font-size:12px;color:#555}.kgpDlgStatus.ok{color:#1A7F37}.kgpDlgStatus.bad{color:#B42318}
-.kgpDlgB{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
-.kgpDlg button{all:unset;box-sizing:border-box;height:28px;padding:0 14px;border-radius:4px;border:1px solid #CFCFCF;cursor:pointer;font-size:13px;color:#222;background:#fff;white-space:nowrap}
-.kgpDlg button.pri{background:#005FB8;border-color:#005FB8;color:#fff}
-.kgpDlg button:hover{filter:brightness(.96)}
-.kgpLang:hover{background:#E6E8EB;color:#222}
-.kgpMdWrap{padding-bottom:20px;position:absolute;left:0;right:${RIGHT}px;border:1px solid transparent;border-left:none;border-radius:0 6px 6px 0;box-sizing:border-box;cursor:default}
-.kgpMdM{position:absolute;left:${BX}px;right:0;border:1px solid transparent;border-right:none;border-radius:6px 0 0 6px;box-sizing:border-box}
-.kgpMdWrap.kgpH,.kgpMdM.kgpH{border-color:${C.bd}}
-.kgpMdWrap.kgpF,.kgpMdM.kgpF{border-color:${C.focus}}
-.kgpMdBody{font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:14px;line-height:1.55;color:#1F2328;padding:6px 12px 6px 0;user-select:text;white-space:normal}
-.kgpMdBody>:first-child{margin-top:0}.kgpMdBody>:last-child{margin-bottom:0}
-.kgpMdBody h1{font-size:22px;font-weight:600;margin:.2em 0 .35em}.kgpMdBody h2{font-size:18px;font-weight:600;margin:.2em 0 .35em}
-.kgpMdBody h3{font-size:15.5px;font-weight:600;margin:.2em 0 .3em}.kgpMdBody h4,.kgpMdBody h5,.kgpMdBody h6{font-size:14px;font-weight:600;margin:.2em 0 .3em}
-.kgpMdBody p{margin:.35em 0}.kgpMdBody ul,.kgpMdBody ol{margin:.35em 0;padding-left:24px}.kgpMdBody li{margin:.1em 0}
-.kgpMdBody code{font-family:var(--msg-monospace-font-family),Consolas,monospace;font-size:12.5px;background:#EFF1F3;border-radius:4px;padding:1px 5px}
-.kgpMdBody pre{background:#F6F8FA;border-radius:6px;padding:8px 12px;margin:.45em 0;overflow:hidden}.kgpMdBody pre code{background:none;padding:0;white-space:pre}
-.kgpMdBody blockquote{margin:.4em 0;padding:0 0 0 12px;border-left:3px solid #D0D7DE;color:#57606A}
-.kgpMdBody table{border-collapse:collapse;margin:.45em 0;font-size:13px}.kgpMdBody th,.kgpMdBody td{border:1px solid #DDDDDD;padding:4px 10px;text-align:left}.kgpMdBody th{background:#F6F8FA;font-weight:600}
-.kgpMdBody hr{border:none;border-top:1px solid #E3E3E3;margin:.6em 0}.kgpMdBody a{color:#0B63C5;text-decoration:none}
-.kgpMdBody .kgpMdEmpty{color:#9AA0A6;font-style:italic}
-.kgpChip{position:absolute;right:10px;top:50%;transform:translateY(-50%);gap:7px;height:22px;padding:0 9px;border:1px solid #E1E1E1;background:#F7F7F7;border-radius:11px;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:11.5px;color:#555;z-index:5;white-space:nowrap}
-.kgpChip:hover{border-color:#C9C9C9;background:#F0F0F0}
-.kgpChip b{font-weight:600;color:#333}.kgpChip .d{width:7px;height:7px;border-radius:50%;background:#3A9A4F}.kgpChip .d.off{background:#B5B5B5}
-.kgpChip .ac{font-size:9.5px;letter-spacing:.04em;color:#3A7A4A;font-weight:600}.kgpChip .codicon{font-size:13px}
+.scriptingConsole .view-overlays > div > div:not(.kgptalkieL){z-index:1}
+.scriptingConsole .kgptalkieM::after{content:'';position:absolute;left:${BX}px;right:0;top:0;bottom:0;background:${C.bg};border-left:1px solid ${C.bd}}
+.scriptingConsole .kgptalkieM.kgptalkieF::after{border-left-color:${C.focus}}
+.scriptingConsole .kgptalkieM.kgptalkieF::before{content:'';position:absolute;left:3px;width:3px;top:0;bottom:0;background:${C.focus};border-radius:2px}
+.scriptingConsole .kgptalkieN::before{position:absolute;left:30px;width:34px;text-align:right;font-family:var(--msg-monospace-font-family),Consolas,monospace;font-size:11px;color:${C.count};line-height:${NB}px}
+.scriptingConsole .kgptalkieN0::before{content:'[ ]'}
+.scriptingConsole .kgptalkieNR::before{content:'[*]';color:${C.focus}}
+.scriptingConsole .kgptalkieNM::before{content:'M\\2193';font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:10px;color:#9A9A9A}
+.scriptingConsole .kgptalkieLn{z-index:1}
+.scriptingConsole .kgptalkieLn::before{position:absolute;left:${BX + 2}px;width:${MW - BX - 10}px;text-align:right;font-family:var(--msg-monospace-font-family),Consolas,monospace;font-size:11px;color:${C.ln};line-height:${NB}px}
+.scriptingConsole .kgptalkieLn.kgptalkieF::before{color:${C.lnF}}
+.scriptingConsole .kgptalkieP{left:10px !important;width:20px !important;cursor:pointer;z-index:2}
+.scriptingConsole .kgptalkieP::before{content:'\\eb2c';font-family:codicon;font-size:16px;line-height:${NB}px;display:none;width:20px;text-align:center;color:#4A4A4A}
+.scriptingConsole .kgptalkieP.kgptalkiePV::before{display:block}
+.scriptingConsole .kgptalkieP:hover::before{color:${C.focus}}
+.kgptalkieCap{position:absolute;height:${CAP}px;background:${C.bg};border:0 solid ${C.bd};box-sizing:border-box}
+.kgptalkieCap.t{bottom:0;border-top-width:1px}
+.kgptalkieCap.b{top:0;border-bottom-width:1px}
+.kgptalkieCap.c{left:0;right:${RIGHT}px;border-right-width:1px}
+.kgptalkieCap.m{left:${BX}px;right:0;border-left-width:1px}
+.kgptalkieCap.c.t{border-top-right-radius:6px}.kgptalkieCap.m.t{border-top-left-radius:6px}
+.kgptalkieCap.c.b{border-bottom-right-radius:6px}.kgptalkieCap.m.b{border-bottom-left-radius:6px}
+.kgptalkieCap.kgptalkieF{border-color:${C.focus}}
+.kgptalkieBar{position:absolute;left:3px;width:3px;background:${C.focus};border-radius:2px;display:none}
+.kgptalkieBar.kgptalkieF{display:block}
+.kgptalkieBar.t{bottom:0;height:${CAP}px}.kgptalkieBar.b{top:0;height:${CAPB}px}
+.kgptalkieCap.b{height:${CAPB}px}
+.kgptalkieGap{position:absolute;left:0;right:${RIGHT}px;top:0}
+.kgptalkieIns{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);display:none;justify-content:center;gap:8px;z-index:2}
+.kgptalkieGap:hover .kgptalkieIns,.kgptalkieTrail .kgptalkieIns{display:flex}
+.kgptalkieTrail .kgptalkieIns{opacity:.8}.kgptalkieTrail .kgptalkieIns:hover{opacity:1}
+.kgptalkieIns button{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 9px;border:1px solid #D9D9D9;border-radius:4px;background:#fff;color:#444;cursor:pointer;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:11.5px}
+.kgptalkieIns button:hover{border-color:${C.focus};color:${C.focus}}
+.kgptalkieIns .codicon{font-size:12px}
+.kgptalkieCellBar{position:absolute;right:${RIGHT + 14}px;height:22px;display:none;align-items:center;padding:0 2px;background:#fff;border:1px solid #DDDDDD;border-radius:5px;box-shadow:0 1px 3px rgba(0,0,0,.08);z-index:3}
+.kgptalkieCellBar.kgptalkieShow,.kgptalkieCellBar.kgptalkieMenuOpen{display:flex}
+.kgptalkieCellBar button,.kgptalkieNbBar button,.kgptalkieChip{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:#4A4A4A;border-radius:4px}
+.kgptalkieCellBar button{width:24px;height:18px}
+.kgptalkieCellBar button:hover,.kgptalkieNbBar button:hover{background:#EBEEF2;color:#111}
+.kgptalkieCellBar .codicon{font-size:14px}
+.kgptalkieNbBar{flex:0 0 auto;display:flex;align-items:center;gap:2px;height:34px;padding:0 12px 0 ${BX - 8}px;background:#fff;border-bottom:1px solid #EDEDED;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:12px}
+.kgptalkieNbBar button{gap:6px;padding:4px 9px;height:24px;white-space:nowrap;flex:0 0 auto}
+.kgptalkieNbBar .codicon{font-size:14px}
+.kgptalkieSink{position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;overflow:hidden;outline:none}
+.kgptalkieNbBar{position:relative}
+.kgptalkieNbBar .kgptalkieSep{width:1px;height:16px;background:#E0E0E0;margin:0 6px}
+.kgptalkieNbBar button.kgptalkieBusy{color:${C.focus}}
+.kgptalkieNbBar button.kgptalkieOff{color:#9A9A9A}
+.kgptalkieMenu{position:fixed;z-index:10000;min-width:230px;padding:4px 0;background:#fff;border:1px solid #D9D9D9;border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.14);font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:12.5px;color:#222}
+.kgptalkieMenu .it{display:flex;align-items:center;gap:18px;justify-content:space-between;padding:4px 14px;cursor:pointer;white-space:nowrap}
+.kgptalkieMenu .it:hover{background:#E8F0FA}
+.kgptalkieMenu .it.dis{color:#B0B0B0;pointer-events:none}
+.kgptalkieMenu .it .k{color:#8A8A8A;font-size:11px}
+.kgptalkieMenu .sep{height:1px;background:#EAEAEA;margin:4px 0}
+.kgptalkieLang{all:unset;position:absolute;right:${RIGHT + 8}px;bottom:4px;height:16px;line-height:16px;padding:0 6px;border-radius:3px;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:11px;color:#8A8A8A;cursor:pointer;z-index:2;user-select:none}
+.kgptalkieMdWrap .kgptalkieLang{right:8px}
+.kgptalkieLang.kgptalkieLangAi{color:#7C3AED}
+.kgptalkieNbBar .kgptalkieSp{flex:1}
+.scriptingConsole .kgptalkieL.kgptalkieLA{background:#FBF9FF !important}
+.kgptalkieAiHint{color:#A3A3A3 !important;font-style:italic}
+.kgptalkieAiZone{box-sizing:border-box;padding:6px ${RIGHT}px 10px 0;cursor:auto}
+.kgptalkieAi{border:1px solid #E7E0F5;border-left:3px solid #8B5CF6;background:#FBF9FF;border-radius:0 6px 6px 0;padding:8px 12px 10px;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:12.5px;color:#2B2B2B;user-select:text}
+.kgptalkieAi.kgptalkieAi-error,.kgptalkieAi.kgptalkieAi-setup{border-left-color:#B42318;background:#FFFBFA}
+.kgptalkieAiH{display:flex;align-items:center;gap:6px;height:22px;color:#5B3FA8;font-size:12px}
+.kgptalkieAiH .codicon{font-size:14px}.kgptalkieAiH b{font-weight:600}
+.kgptalkieAiM{color:#8A8A8A;margin-left:4px;font-size:11.5px}
+.kgptalkieAiH .kgptalkieSp{flex:1}
+.kgptalkieAiH button,.kgptalkieAiActs button,.kgptalkieFixBtn,.kgptalkieResAi{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:5px;cursor:pointer;border-radius:4px;color:#4A4A4A;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:12px}
+.kgptalkieAiH button{width:22px;height:22px;justify-content:center}
+.kgptalkieAiH button:hover,.kgptalkieAiActs button:hover,.kgptalkieFixBtn:hover,.kgptalkieResAi:hover{background:#EDE7FA;color:#3B2A80}
+.kgptalkieAiB{margin-top:4px;font-size:12.5px;line-height:1.5}
+.kgptalkieAiB p{margin:4px 0}.kgptalkieAiB ul,.kgptalkieAiB ol{margin:4px 0;padding-left:20px}
+.kgptalkieAiB pre{background:#fff;border:1px solid #ECE7F6;border-radius:4px;padding:6px 8px;overflow:auto;font-size:12px}
+.kgptalkieAiActs{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:8px}
+.kgptalkieAiActs button{height:24px;padding:0 9px;border:1px solid #DDD3F2;background:#fff}
+.kgptalkieAiNote{display:inline-flex;align-items:center;gap:4px;color:#5B3FA8;margin-right:6px}
+.kgptalkieAiSk i{display:block;height:9px;margin:7px 0;border-radius:4px;background:#ECE6F7;animation:kgptalkiePulse 1.2s ease-in-out infinite}
+.kgptalkieAiSk i:nth-child(1){width:92%}.kgptalkieAiSk i:nth-child(2){width:74%}.kgptalkieAiSk i:nth-child(3){width:52%}
+@keyframes kgptalkiePulse{50%{opacity:.45}}
+.kgptalkieSpin{animation:kgptalkieSpin 1s linear infinite}@keyframes kgptalkieSpin{to{transform:rotate(360deg)}}
+.kgptalkieFixBtn{margin:6px 0 2px 2px;height:24px;padding:0 9px;border:1px solid #DDD3F2;background:#fff;color:#5B3FA8}
+.kgptalkieResAi{position:absolute;top:2px;right:6px;width:24px;height:22px;justify-content:center;z-index:5;color:#7C3AED;background:#fff}
+.scriptingConsole .renderTarget:has(> .kgptalkieResBar){display:flex !important;flex-direction:column}
+.scriptingConsole .renderTarget:has(> .kgptalkieResBar) > .resultHost{flex:1 1 auto;min-height:0}
+.scriptingConsole .renderTarget.kgptalkieChartView > .resultHost{display:none !important}
+.kgptalkieResBar{flex:0 0 auto;display:flex;align-items:center;gap:2px;height:30px;padding:0 4px 0 2px;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:12px;color:#555}
+.kgptalkieResBar button,.kgptalkieChartCtl button,.kgptalkieViewerH button{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:26px;height:24px;padding:0 5px;border-radius:4px;cursor:pointer;color:#555}
+.kgptalkieResBar button:hover,.kgptalkieChartCtl button:hover,.kgptalkieViewerH button:hover{background:#EBEEF2;color:#111}
+.kgptalkieResBar button.on,.kgptalkieChartCtl button.on{color:#005FB8;background:#E8F0FA}
+.kgptalkieResBar [data-r=ai]{color:#7C3AED}
+.kgptalkieSeg{display:inline-flex;border:1px solid #DCDCDC;border-radius:5px;padding:1px;margin-right:6px}
+.kgptalkieSeg button{height:22px;padding:0 8px}
+.kgptalkieSearch{box-sizing:border-box;width:170px;height:24px;padding:0 8px;border:1px solid #DCDCDC;border-radius:4px;font:inherit;font-size:12px;color:#222;background:#fff;outline:none;margin-right:2px}
+.kgptalkieSearch:focus{border-color:#3B82C4}
+.kgptalkieResBar .kgptalkieSp,.kgptalkieChartCtl .kgptalkieSp,.kgptalkieViewerH .kgptalkieSp{flex:1}
+.kgptalkieMeta{color:#8A8A8A;font-size:11.5px;margin-right:6px;white-space:nowrap}
+.kgptalkieFRow{display:flex;gap:6px;padding:3px 3px;background:#FAFAFA;border-bottom:1px solid #E6E6E6;white-space:nowrap}
+.kgptalkieFRow input{flex:0 0 auto;box-sizing:border-box;height:22px;padding:0 6px;border:1px solid #DCDCDC;border-radius:3px;font:inherit;font-size:11.5px;background:#fff;outline:none}
+.kgptalkieFRow input:focus{border-color:#3B82C4}
+.kgptalkiePin{font-size:12px !important;margin-left:4px;color:#9A9A9A;opacity:0;cursor:pointer;vertical-align:middle}
+.tabulator-col:hover .kgptalkiePin,.kgptalkiePin.on{opacity:1}.kgptalkiePin.on{color:#005FB8}
+.kgptalkieChartBox{flex:0 0 auto;padding:2px 2px 6px}
+.kgptalkieChartCtl{display:flex;align-items:center;gap:2px;height:30px;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:12px;color:#555}
+.kgptalkieChartCtl label{display:inline-flex;align-items:center;gap:4px;margin:0 4px 0 2px}
+.kgptalkieChartCtl select{height:24px;border:1px solid #DCDCDC;border-radius:4px;font:inherit;font-size:12px;background:#fff;max-width:180px}
+.kgptalkieChartCtl .kgptalkieYBtn{border:1px solid #DCDCDC;max-width:260px;overflow:hidden;white-space:nowrap}
+.kgptalkieSepV{width:1px;height:16px;background:#E0E0E0;margin:0 4px}
+.kgptalkieChartCut{color:#8A8A8A;font-size:11.5px;margin-right:6px}
+.kgptalkieChartSvg{padding-top:4px}.kgptalkieChartSvg svg{display:block}
+.kgptalkieChartMsg{padding:16px 8px;color:#8A8A8A;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:12.5px}
+.kgptalkieViewer{flex:0 0 auto;margin:6px 2px 4px;border:1px solid #DCDCDC;border-radius:5px;background:#fff;outline:none;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:12px}
+.kgptalkieViewerH{display:flex;align-items:center;gap:8px;height:30px;padding:0 4px 0 10px;border-bottom:1px solid #EEE;color:#8A8A8A}.kgptalkieViewerH b{color:#222;font-weight:600}
+.kgptalkieViewer pre{margin:0;padding:8px 10px;max-height:320px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-family:var(--msg-monospace-font-family,Consolas),monospace;font-size:12px;color:#222;user-select:text}
+.kgptalkieNbToast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:10002;padding:7px 14px;border-radius:6px;background:#fff;border:1px solid #D9D9D9;box-shadow:0 3px 12px rgba(0,0,0,.14);font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:12.5px;color:#222;display:none}
+.kgptalkieNbToast.on{display:block}
+.kgptalkieDlgBack{position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center}
+.kgptalkieDlg{width:460px;max-width:calc(100vw - 32px);background:#fff;border:1px solid #D9D9D9;border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.18);padding:16px 18px;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:13px;color:#222}
+.kgptalkieDlgT{font-size:15px;font-weight:600;margin-bottom:10px}
+.kgptalkieDlg p{margin:0 0 12px;line-height:1.45}
+.kgptalkieDlg label{display:block;margin:10px 0 0;font-size:12px;color:#555}
+.kgptalkieDlg label.chk{display:flex;gap:8px;align-items:flex-start;color:#333;font-size:12.5px}
+.kgptalkieDlg select,.kgptalkieDlg input:not([type=checkbox]){display:block;box-sizing:border-box;width:100%;margin-top:4px;height:28px;padding:0 8px;border:1px solid #CFCFCF;border-radius:4px;font:inherit;font-size:13px;color:#222;background:#fff}
+.kgptalkieDlgRow{display:flex;gap:6px;align-items:center}.kgptalkieDlgRow input{flex:1}
+.kgptalkieDlgHint{font-size:11.5px;color:#777;margin-top:4px;line-height:1.4}
+.kgptalkieDlgHint code,.kgptalkieVarRow code{font-family:var(--msg-monospace-font-family,Consolas),monospace;font-size:11.5px;background:#F3F3F3;border-radius:3px;padding:0 3px}
+.kgptalkieDlgSub{margin:16px 0 0;padding-top:10px;border-top:1px solid #EAEAEA;font-size:12px;font-weight:600;color:#333}
+.kgptalkieVarList{margin-top:10px;max-height:300px;overflow:auto}
+.kgptalkieVarRow{display:grid;grid-template-columns:minmax(90px,auto) 1fr 92px;gap:8px;align-items:center;margin-top:6px}
+.kgptalkieVarRow input{margin-top:0 !important}.kgptalkieVarSrc{font-size:11px;color:#8A8A8A}
+.kgptalkieVarAdd{margin-top:10px}.kgptalkieVarAdd input{margin-top:0 !important}
+.kgptalkieTag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:#EEF2F7;color:#40566E;margin-right:8px}
+.kgptalkieTag.prod{background:#FDECEC;color:#B42318}.kgptalkieTag.none{display:none}
+.kgptalkieDb{font-size:11.5px;color:#6B6B6B;margin-right:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}.kgptalkieDb:empty{display:none}
+.kgptalkieSteps{margin:4px 0 8px;padding-left:20px;line-height:1.5}.kgptalkieSteps li{margin:6px 0}
+.kgptalkieSteps code{font-family:var(--msg-monospace-font-family,Consolas),monospace;font-size:11.5px;background:#F3F3F3;border-radius:3px;padding:0 3px}
+.kgptalkieDlgStatus{min-height:18px;margin-top:12px;font-size:12px;color:#555}.kgptalkieDlgStatus.ok{color:#1A7F37}.kgptalkieDlgStatus.bad{color:#B42318}
+.kgptalkieDlgB{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.kgptalkieDlg button{all:unset;box-sizing:border-box;height:28px;padding:0 14px;border-radius:4px;border:1px solid #CFCFCF;cursor:pointer;font-size:13px;color:#222;background:#fff;white-space:nowrap}
+.kgptalkieDlg button.pri{background:#005FB8;border-color:#005FB8;color:#fff}
+.kgptalkieDlg button:hover{filter:brightness(.96)}
+.kgptalkieLang:hover{background:#E6E8EB;color:#222}
+.kgptalkieMdWrap{padding-bottom:20px;position:absolute;left:0;right:${RIGHT}px;border:1px solid transparent;border-left:none;border-radius:0 6px 6px 0;box-sizing:border-box;cursor:default}
+.kgptalkieMdM{position:absolute;left:${BX}px;right:0;border:1px solid transparent;border-right:none;border-radius:6px 0 0 6px;box-sizing:border-box}
+.kgptalkieMdWrap.kgptalkieH,.kgptalkieMdM.kgptalkieH{border-color:${C.bd}}
+.kgptalkieMdWrap.kgptalkieF,.kgptalkieMdM.kgptalkieF{border-color:${C.focus}}
+.kgptalkieMdBody{font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:14px;line-height:1.55;color:#1F2328;padding:6px 12px 6px 0;user-select:text;white-space:normal}
+.kgptalkieMdBody>:first-child{margin-top:0}.kgptalkieMdBody>:last-child{margin-bottom:0}
+.kgptalkieMdBody h1{font-size:22px;font-weight:600;margin:.2em 0 .35em}.kgptalkieMdBody h2{font-size:18px;font-weight:600;margin:.2em 0 .35em}
+.kgptalkieMdBody h3{font-size:15.5px;font-weight:600;margin:.2em 0 .3em}.kgptalkieMdBody h4,.kgptalkieMdBody h5,.kgptalkieMdBody h6{font-size:14px;font-weight:600;margin:.2em 0 .3em}
+.kgptalkieMdBody p{margin:.35em 0}.kgptalkieMdBody ul,.kgptalkieMdBody ol{margin:.35em 0;padding-left:24px}.kgptalkieMdBody li{margin:.1em 0}
+.kgptalkieMdBody code{font-family:var(--msg-monospace-font-family),Consolas,monospace;font-size:12.5px;background:#EFF1F3;border-radius:4px;padding:1px 5px}
+.kgptalkieMdBody pre{background:#F6F8FA;border-radius:6px;padding:8px 12px;margin:.45em 0;overflow:hidden}.kgptalkieMdBody pre code{background:none;padding:0;white-space:pre}
+.kgptalkieMdBody blockquote{margin:.4em 0;padding:0 0 0 12px;border-left:3px solid #D0D7DE;color:#57606A}
+.kgptalkieMdBody table{border-collapse:collapse;margin:.45em 0;font-size:13px}.kgptalkieMdBody th,.kgptalkieMdBody td{border:1px solid #DDDDDD;padding:4px 10px;text-align:left}.kgptalkieMdBody th{background:#F6F8FA;font-weight:600}
+.kgptalkieMdBody hr{border:none;border-top:1px solid #E3E3E3;margin:.6em 0}.kgptalkieMdBody a{color:#0B63C5;text-decoration:none}
+.kgptalkieMdBody .kgptalkieMdEmpty{color:#9AA0A6;font-style:italic}
+.kgptalkieChip{position:absolute;right:10px;top:50%;transform:translateY(-50%);gap:7px;height:22px;padding:0 9px;border:1px solid #E1E1E1;background:#F7F7F7;border-radius:11px;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:11.5px;color:#555;z-index:5;white-space:nowrap}
+.kgptalkieChip:hover{border-color:#C9C9C9;background:#F0F0F0}
+.kgptalkieChip b{font-weight:600;color:#333}.kgptalkieChip .d{width:7px;height:7px;border-radius:50%;background:#3A9A4F}.kgptalkieChip .d.off{background:#B5B5B5}
+.kgptalkieChip .ac{font-size:9.5px;letter-spacing:.04em;color:#3A7A4A;font-weight:600}.kgptalkieChip .codicon{font-size:13px}
 .scriptingConsole .zoneHost .renderTarget{background:transparent !important}
 .scriptingConsole .margin-view-zones .zoneMargin{background:transparent !important}
 .scriptingConsole .margin-view-zones .zoneMargin::before{display:none !important}
-.scriptingConsole .margin-view-zones .zoneMargin.kgpF::before{display:block !important;left:3px !important;right:auto !important;width:3px !important;mask-image:none !important;background-color:${C.focus} !important;border-radius:2px}
+.scriptingConsole .margin-view-zones .zoneMargin.kgptalkieF::before{display:block !important;left:3px !important;right:auto !important;width:3px !important;mask-image:none !important;background-color:${C.focus} !important;border-radius:2px}
 .scriptingConsole .renderTarget > .divider.horizontal{display:none !important}
 .scriptingConsole .tabContent,.scriptingConsole .outputHost{background:#fff !important}
 .scriptingConsole .resultStatus{background:#fff !important}
@@ -228,57 +228,57 @@ body:not(.kgpTitleOpen) #desktopWorkspaceTitlebar{display:none !important}
 .scriptingConsole .tabulator .tabulator-row{background:#fff !important;border-bottom:1px solid #EFEFEF !important}
 .scriptingConsole .tabulator .tabulator-row.tabulator-row-even{background:#FAFAFA !important}
 .scriptingConsole .tabulator .tabulator-row .tabulator-cell{border-right:none !important}
-body.kgpActOn #root{flex-direction:row !important}
-body.kgpActOn #root > .applicationHost{flex:1 1 auto !important;min-width:0 !important;width:auto !important}
-.kgpAct{flex:0 0 48px;width:48px;display:flex;flex-direction:column;align-items:center;background:#2C2C2C;padding-top:4px;z-index:6}
-.kgpAct button{all:unset;box-sizing:border-box;position:relative;width:48px;height:48px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#9D9D9D}
-.kgpAct button:hover{color:#E8E8E8}
-.kgpAct button.on{color:#FFFFFF}
-.kgpAct button.on::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:#FFFFFF}
-.kgpAct .codicon{font-size:24px}
-.kgpAct .kgpSp{flex:1}
-body.kgpActOn #documentSideBar > .actions{display:none !important}
-body.kgpActOn #desktopSidebarHeader{display:none !important}
-body.kgpP-explorer #documentSideBar{display:none !important}
-body.kgpActOn:not(.kgpP-explorer) .kgpExp{display:none !important}
-body.kgpActOn:not(.kgpP-explorer) #documentSideBar .kgpHideSec{display:none !important}
-body.kgpActOn:not(.kgpP-explorer) #documentSideBar .kgpFullSec{top:0 !important;height:100% !important}
-.kgpAct button.kgpNA{display:none}
-body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !important}
-.kgpExp{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;background:#F8F8F8;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:13px;color:#3B3B3B;position:relative;user-select:none}
-.kgpExpHead{flex:0 0 35px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 20px;font-size:11px;letter-spacing:.04em;color:#616161}
-.kgpExpHead .kgpActs{display:flex;gap:2px}
-.kgpExpHead button{all:unset;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:4px;cursor:pointer;color:#616161}
-.kgpExpHead button:hover{background:#E4E4E4;color:#222}
-.kgpExpHead .codicon{font-size:16px}
-.kgpExpBody{flex:1 1 auto;overflow:auto;min-height:0;padding-bottom:12px}
-.kgpRow{display:flex;align-items:center;height:22px;line-height:22px;padding-right:8px;white-space:nowrap;cursor:pointer;box-sizing:border-box;border:1px solid transparent}
-.kgpRow:hover{background:#E8E8E8}
-.kgpRow.kgpSel{background:#E4E6F1;border-color:#C9D3F0}
-.kgpRow.kgpRoot{font-weight:700;font-size:11.5px;letter-spacing:.02em;text-transform:uppercase;color:#3B3B3B}
-.kgpRow.kgpNo .kgpNm{color:#8A8A8A}
-.kgpRow.kgpNote{color:#8A8A8A;font-style:italic;cursor:default}.kgpRow.kgpNote:hover{background:none}
-.kgpRow.kgpErr{color:#B42318}
-.kgpTw{flex:0 0 16px;width:16px;font-size:14px;color:#616161;text-align:center}
-.kgpIc{flex:0 0 16px;font-size:14px;margin:0 6px 0 0}
-.kgpDir .kgpNm{margin-left:2px}
-.kgpNm{overflow:hidden;text-overflow:ellipsis}
-.kgpEmpty{padding:6px 20px;color:#616161;font-size:13px;line-height:1.45}
-.kgpEmpty p{margin:8px 0}.kgpEmpty .kgpHint{font-size:12px;color:#8A8A8A}
-.kgpBtn{all:unset;box-sizing:border-box;display:block;width:100%;text-align:center;padding:6px 10px;border-radius:3px;background:#005FB8;color:#fff;cursor:pointer;font-size:13px}
-.kgpBtn:hover{background:#0258A8}
-.kgpToast{position:absolute;left:10px;right:10px;bottom:10px;padding:8px 10px;border-radius:5px;background:#fff;border:1px solid #D9D9D9;box-shadow:0 2px 8px rgba(0,0,0,.12);font-size:12px;color:#333;display:none}
-.kgpToast.on{display:block}
+body.kgptalkieActOn #root{flex-direction:row !important}
+body.kgptalkieActOn #root > .applicationHost{flex:1 1 auto !important;min-width:0 !important;width:auto !important}
+.kgptalkieAct{flex:0 0 48px;width:48px;display:flex;flex-direction:column;align-items:center;background:#2C2C2C;padding-top:4px;z-index:6}
+.kgptalkieAct button{all:unset;box-sizing:border-box;position:relative;width:48px;height:48px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#9D9D9D}
+.kgptalkieAct button:hover{color:#E8E8E8}
+.kgptalkieAct button.on{color:#FFFFFF}
+.kgptalkieAct button.on::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:#FFFFFF}
+.kgptalkieAct .codicon{font-size:24px}
+.kgptalkieAct .kgptalkieSp{flex:1}
+body.kgptalkieActOn #documentSideBar > .actions{display:none !important}
+body.kgptalkieActOn #desktopSidebarHeader{display:none !important}
+body.kgptalkieP-explorer #documentSideBar{display:none !important}
+body.kgptalkieActOn:not(.kgptalkieP-explorer) .kgptalkieExp{display:none !important}
+body.kgptalkieActOn:not(.kgptalkieP-explorer) #documentSideBar .kgptalkieHideSec{display:none !important}
+body.kgptalkieActOn:not(.kgptalkieP-explorer) #documentSideBar .kgptalkieFullSec{top:0 !important;height:100% !important}
+.kgptalkieAct button.kgptalkieNA{display:none}
+body.kgptalkieActOn #documentSideBar .accordionContent > .sashContainer{display:none !important}
+.kgptalkieExp{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;background:#F8F8F8;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:13px;color:#3B3B3B;position:relative;user-select:none}
+.kgptalkieExpHead{flex:0 0 35px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 20px;font-size:11px;letter-spacing:.04em;color:#616161}
+.kgptalkieExpHead .kgptalkieActs{display:flex;gap:2px}
+.kgptalkieExpHead button{all:unset;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:4px;cursor:pointer;color:#616161}
+.kgptalkieExpHead button:hover{background:#E4E4E4;color:#222}
+.kgptalkieExpHead .codicon{font-size:16px}
+.kgptalkieExpBody{flex:1 1 auto;overflow:auto;min-height:0;padding-bottom:12px}
+.kgptalkieRow{display:flex;align-items:center;height:22px;line-height:22px;padding-right:8px;white-space:nowrap;cursor:pointer;box-sizing:border-box;border:1px solid transparent}
+.kgptalkieRow:hover{background:#E8E8E8}
+.kgptalkieRow.kgptalkieSel{background:#E4E6F1;border-color:#C9D3F0}
+.kgptalkieRow.kgptalkieRoot{font-weight:700;font-size:11.5px;letter-spacing:.02em;text-transform:uppercase;color:#3B3B3B}
+.kgptalkieRow.kgptalkieNo .kgptalkieNm{color:#8A8A8A}
+.kgptalkieRow.kgptalkieNote{color:#8A8A8A;font-style:italic;cursor:default}.kgptalkieRow.kgptalkieNote:hover{background:none}
+.kgptalkieRow.kgptalkieErr{color:#B42318}
+.kgptalkieTw{flex:0 0 16px;width:16px;font-size:14px;color:#616161;text-align:center}
+.kgptalkieIc{flex:0 0 16px;font-size:14px;margin:0 6px 0 0}
+.kgptalkieDir .kgptalkieNm{margin-left:2px}
+.kgptalkieNm{overflow:hidden;text-overflow:ellipsis}
+.kgptalkieEmpty{padding:6px 20px;color:#616161;font-size:13px;line-height:1.45}
+.kgptalkieEmpty p{margin:8px 0}.kgptalkieEmpty .kgptalkieHint{font-size:12px;color:#8A8A8A}
+.kgptalkieBtn{all:unset;box-sizing:border-box;display:block;width:100%;text-align:center;padding:6px 10px;border-radius:3px;background:#005FB8;color:#fff;cursor:pointer;font-size:13px}
+.kgptalkieBtn:hover{background:#0258A8}
+.kgptalkieToast{position:absolute;left:10px;right:10px;bottom:10px;padding:8px 10px;border-radius:5px;background:#fff;border:1px solid #D9D9D9;box-shadow:0 2px 8px rgba(0,0,0,.12);font-size:12px;color:#333;display:none}
+.kgptalkieToast.on{display:block}
 `;
- let st = document.getElementById('kgpHideBar'); if (!st) { st = document.createElement('style'); st.id = 'kgpHideBar'; document.head.appendChild(st); }
+ let st = document.getElementById('kgptalkieHideBar'); if (!st) { st = document.createElement('style'); st.id = 'kgptalkieHideBar'; document.head.appendChild(st); }
  st.textContent = css;
- let dyn = document.getElementById('kgpDyn'); if (!dyn) { dyn = document.createElement('style'); dyn.id = 'kgpDyn'; document.head.appendChild(dyn); }
+ let dyn = document.getElementById('kgptalkieDyn'); if (!dyn) { dyn = document.createElement('style'); dyn.id = 'kgptalkieDyn'; document.head.appendChild(dyn); }
  const rules = new Set();
  const rule = (cls, text) => { if (!rules.has(cls)) { rules.add(cls); dyn.sheet.insertRule(`.scriptingConsole .${cls}::before{content:'${text}'}`, dyn.sheet.cssRules.length); } return cls; };
- const R = W.kgpRun || (W.kgpRun = { n: 0, seen: new WeakMap(), num: new WeakMap() });
- const MDE = W.kgpMdEdit || (W.kgpMdEdit = new WeakSet());          // markdown cells being edited (others are rendered)
- const AIC = W.kgpAiCells || (W.kgpAiCells = new WeakSet());        // AI cells: markdown contexts whose first line is AI_MARK
- const AIO = W.kgpAiOut || (W.kgpAiOut = new WeakMap());            // context -> AI card state
+ const R = W.kgptalkieRun || (W.kgptalkieRun = { n: 0, seen: new WeakMap(), num: new WeakMap() });
+ const MDE = W.kgptalkieMdEdit || (W.kgptalkieMdEdit = new WeakSet());          // markdown cells being edited (others are rendered)
+ const AIC = W.kgptalkieAiCells || (W.kgptalkieAiCells = new WeakSet());        // AI cells: markdown contexts whose first line is AI_MARK
+ const AIO = W.kgptalkieAiOut || (W.kgptalkieAiOut = new WeakMap());            // context -> AI card state
  const AI_MARK = '<!-- ai -->';
  const sleep = ms => new Promise(r => setTimeout(r, ms));
  let list = [];
@@ -293,9 +293,9 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
  const isMdOnly = x => isMd(x) && !AIC.has(x);
  const syncAi = ed => { const m = ed.getModel(); for (const x of ctxs(ed)) { if (isMd(x) && m.getLineContent(x.startLine).trim() === AI_MARK) AIC.add(x); else AIC.delete(x); } };
  const quiet = (ce, fn) => { ce.updateExecutionContexts = () => { }; try { fn(); } finally { delete ce.updateExecutionContexts; } };
- const focusCell = (ed, i, atEnd) => { const m = ed.getModel(), x = ctxs(ed)[i]; if (!x) return; const S = ed.kgpNB; if (rendered(x)) { if (S) { S.sel = i; S.dsig = ''; } return; } const ln = atEnd ? x.endLine : (isAi(x) && x.endLine > x.startLine ? x.startLine + 1 : x.startLine); ed.setPosition({ lineNumber: ln, column: atEnd ? m.getLineMaxColumn(ln) : 1 }); ed.revealLineInCenterIfOutsideViewport(ln); if (!ed.kgpCmd) ed.focus(); if (S) S.sel = i; };
- const selIndex = ed => { const S = ed.kgpNB; if (S && S.sel >= 0 && S.sel < ctxs(ed).length) return S.sel; const p = ed.getPosition(); return p ? cellAt(ed, p.lineNumber) : -1; };
- const dirty = ed => { if (ed.kgpNB) ed.kgpNB.sig = ''; };
+ const focusCell = (ed, i, atEnd) => { const m = ed.getModel(), x = ctxs(ed)[i]; if (!x) return; const S = ed.kgptalkieNB; if (rendered(x)) { if (S) { S.sel = i; S.dsig = ''; } return; } const ln = atEnd ? x.endLine : (isAi(x) && x.endLine > x.startLine ? x.startLine + 1 : x.startLine); ed.setPosition({ lineNumber: ln, column: atEnd ? m.getLineMaxColumn(ln) : 1 }); ed.revealLineInCenterIfOutsideViewport(ln); if (!ed.kgptalkieCmd) ed.focus(); if (S) S.sel = i; };
+ const selIndex = ed => { const S = ed.kgptalkieNB; if (S && S.sel >= 0 && S.sel < ctxs(ed).length) return S.sel; const p = ed.getPosition(); return p ? cellAt(ed, p.lineNumber) : -1; };
+ const dirty = ed => { if (ed.kgptalkieNB) ed.kgptalkieNB.sig = ''; };
 
  /* ---------- markdown to HTML (escaped first; links only http/https/mailto) ---------- */
  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -326,7 +326,7 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
    const b = [L[i++]]; while (i < L.length && L[i].trim() && !BLOCK.test(L[i])) b.push(L[i++]);
    h += '<p>' + b.map(inline).join(' ') + '</p>';
   }
-  return h || '<p class="kgpMdEmpty">Empty markdown cell. Use the pencil to edit.</p>';
+  return h || '<p class="kgptalkieMdEmpty">Empty markdown cell. Use the pencil to edit.</p>';
  };
 
  /* ---------- SQL: one clause per line <-> one line ---------- */
@@ -358,7 +358,7 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
   }
   return o.replace(/[ \t]+$/gm, '').replace(/\n+$/, '');
  };
- W.kgpFormat = { oneLine, multiLine, mdToHtml };
+ W.kgptalkieFormat = { oneLine, multiLine, mdToHtml };
 
  /* ---------- undo: each cell action is ONE entry on the editor's own undo stack ----------
     Its text edits are taken off Monaco's stack and replaced by one entry whose undo/redo rebuilds the cells
@@ -369,18 +369,18 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
  const snap = ed => { const m = ed.getModel(); return { text: m.getValue(), sel: selIndex(ed), cells: ctxs(ed).map(x => ({ x, text: textOf(m, x), lang: x.language, edit: MDE.has(x), res: resOf(x), num: R.num.get(x) })) }; };
  const sameCells = (a, b) => a.text === b.text && a.cells.length === b.cells.length && a.cells.every((c, k) => c.lang === b.cells[k].lang && c.text === b.cells[k].text && c.res === b.cells[k].res);
  const act = async (ed, label, fn) => {
-  const m = ed.getModel(); if (!m || W.kgpActing) return false; W.kgpActing = true;
+  const m = ed.getModel(); if (!m || W.kgptalkieActing) return false; W.kgptalkieActing = true;
   try {
    m.pushStackElement(); const before = snap(ed);
    await keepStack(m, fn);
    const after = snap(ed); if (sameCells(before, after)) return false;
-   m._undoRedoService.pushElement({ type: 0, resource: m.uri, label, code: 'kgp.cells', confirmBeforeUndo: false, undo: () => restore(ed, before), redo: () => restore(ed, after) });
+   m._undoRedoService.pushElement({ type: 0, resource: m.uri, label, code: 'kgptalkie.cells', confirmBeforeUndo: false, undo: () => restore(ed, before), redo: () => restore(ed, after) });
    return true;
-  } catch (e) { W.kgpErr = String(e && e.stack || e); return false; } finally { W.kgpActing = false; dirty(ed); }
+  } catch (e) { W.kgptalkieErr = String(e && e.stack || e); return false; } finally { W.kgptalkieActing = false; dirty(ed); }
  };
  /* switch a cell's type: the app switches the cell under the caret and swaps the context object a moment later */
  const setLang = async (ed, i, lang) => {
-  const ce = ed.kgpCE, m = ed.getModel(), x = ctxs(ed)[i];
+  const ce = ed.kgptalkieCE, m = ed.getModel(), x = ctxs(ed)[i];
   if (resOf(x)) await x.removeResult();
   ed.setPosition({ lineNumber: x.startLine, column: 1 });
   ce.setExecutionBlockLanguageAndText(x, textOf(m, x), lang, true);
@@ -389,7 +389,7 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
  };
  /* make cell i hold c = { text, lang, res, num } (res = output to show, null = none) */
  const setCell = async (ed, i, c) => {
-  const ce = ed.kgpCE, m = ed.getModel(); let x = ctxs(ed)[i]; if (!x) return null;
+  const ce = ed.kgptalkieCE, m = ed.getModel(); let x = ctxs(ed)[i]; if (!x) return null;
   if (x.language !== c.lang) x = await setLang(ed, i, c.lang);
   if (textOf(m, x) !== c.text) { if (resOf(x)) await x.removeResult(); ce.setExecutionBlockLanguageAndText(x, c.text, undefined, true); x = ctxs(ed)[i]; }
   const have = resOf(x);
@@ -399,19 +399,19 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
  };
  /* new empty cell at index `at` (0..length) */
  const insCore = (ed, at, lang) => {
-  const ce = ed.kgpCE, m = ed.getModel(), ec = m.executionContexts, all = ctxs(ed);
+  const ce = ed.kgptalkieCE, m = ed.getModel(), ec = m.executionContexts, all = ctxs(ed);
   at = Math.max(0, Math.min(at, all.length)); let L;
-  if (at === all.length) { const e = all[all.length - 1].endLine, col = m.getLineMaxColumn(e); quiet(ce, () => ed.executeEdits('kgp', [{ range: { startLineNumber: e, startColumn: col, endLineNumber: e, endColumn: col }, text: '\n' }])); L = e + 1; }
-  else { L = all[at].startLine; quiet(ce, () => ed.executeEdits('kgp', [{ range: { startLineNumber: L, startColumn: 1, endLineNumber: L, endColumn: 1 }, text: '\n' }])); for (let j = at; j < all.length; j++) all[j].movePosition(1); }
+  if (at === all.length) { const e = all[all.length - 1].endLine, col = m.getLineMaxColumn(e); quiet(ce, () => ed.executeEdits('kgptalkie', [{ range: { startLineNumber: e, startColumn: col, endLineNumber: e, endColumn: col }, text: '\n' }])); L = e + 1; }
+  else { L = all[at].startLine; quiet(ce, () => ed.executeEdits('kgptalkie', [{ range: { startLineNumber: L, startColumn: 1, endLineNumber: L, endColumn: 1 }, text: '\n' }])); for (let j = at; j < all.length; j++) all[j].movePosition(1); }
   const p = ce.props.createResultPresentation(ce, lang); p.startLine = L; p.endLine = L; ec.insertContext(at, p);
   return at;
  };
  const remCore = (ed, i) => {
-  const ce = ed.kgpCE, m = ed.getModel(), ec = m.executionContexts, all = ctxs(ed), x = all[i];
+  const ce = ed.kgptalkieCE, m = ed.getModel(), ec = m.executionContexts, all = ctxs(ed), x = all[i];
   const s = x.startLine, e = x.endLine, n = e - s + 1, last = i === all.length - 1, pe = last ? all[i - 1].endLine : 0;
   ec.removeContexts([i]);
   const range = last ? { startLineNumber: pe, startColumn: m.getLineMaxColumn(pe), endLineNumber: e, endColumn: m.getLineMaxColumn(e) } : { startLineNumber: s, startColumn: 1, endLineNumber: e + 1, endColumn: 1 };
-  quiet(ce, () => ed.executeEdits('kgp', [{ range, text: '', forceMoveMarkers: true }]));
+  quiet(ce, () => ed.executeEdits('kgptalkie', [{ range, text: '', forceMoveMarkers: true }]));
   const rest = ctxs(ed); for (let j = i; j < rest.length; j++) rest[j].movePosition(-n);
  };
  /* bring the cells back to a snapshot: keep the equal cells at both ends, rebuild the middle */
@@ -427,27 +427,27 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
    for (let k = nCur; k < nT; k++) { insCore(ed, p + k, tc[p + k].lang); await setCell(ed, p + k, tc[p + k]); }
   });
   ctxs(ed).forEach((x, k) => { if (tc[k] && tc[k].edit) MDE.add(x); else MDE.delete(x); });
-  if (m.getValue() !== T.text) W.kgpErr = 'undo: text differs after restore';
+  if (m.getValue() !== T.text) W.kgptalkieErr = 'undo: text differs after restore';
   dirty(ed); selectCell(ed, Math.min(T.sel, ctxs(ed).length - 1));
  };
  /* select a cell: edit mode puts the caret in it, command mode only marks it */
  const selectCell = (ed, i) => {
-  const all = ctxs(ed); if (!all.length) return; i = Math.max(0, Math.min(i, all.length - 1)); const x = all[i], S = ed.kgpNB;
-  if (ed.kgpCmd || rendered(x)) { if (!rendered(x)) ed.setPosition({ lineNumber: x.startLine, column: 1 }); if (S) { S.sel = i; S.dsig = ''; } ed.revealLineInCenterIfOutsideViewport(x.startLine); }
+  const all = ctxs(ed); if (!all.length) return; i = Math.max(0, Math.min(i, all.length - 1)); const x = all[i], S = ed.kgptalkieNB;
+  if (ed.kgptalkieCmd || rendered(x)) { if (!rendered(x)) ed.setPosition({ lineNumber: x.startLine, column: 1 }); if (S) { S.sel = i; S.dsig = ''; } ed.revealLineInCenterIfOutsideViewport(x.startLine); }
   else focusCell(ed, i, false);
  };
 
  /* ---------- actions ---------- */
  const A = {
   run(ed, i) {
-   const ce = ed.kgpCE, x = ctxs(ed)[i]; if (!ce || !x) return null;
+   const ce = ed.kgptalkieCE, x = ctxs(ed)[i]; if (!ce || !x) return null;
    if (isAi(x)) { A.aiCell(ed, i); return null; }
    if (isMd(x)) { A.render(ed, i, false); return null; }
    focusCell(ed, i, true); const before = resOf(x); ce.executeSelectedOrAll({ advance: false }); return { x, before };
   },
-  async done(job, maxMs = 120000) { const t0 = Date.now(); while (Date.now() - t0 < maxMs) { const p = job.x.presentation; if (job.x.disposed) return; if (p && p.loadingState === 'idle' && p.resultData && p.resultData !== job.before && !W.kgpSqlRunning) return; await sleep(100); } },
+  async done(job, maxMs = 120000) { const t0 = Date.now(); while (Date.now() - t0 < maxMs) { const p = job.x.presentation; if (job.x.disposed) return; if (p && p.loadingState === 'idle' && p.resultData && p.resultData !== job.before && !W.kgptalkieSqlRunning) return; await sleep(100); } },
   async runRange(ed, from, to, btn) {
-   if (W.kgpBusy) return; W.kgpBusy = true; if (btn) btn.classList.add('kgpBusy');
+   if (W.kgptalkieBusy) return; W.kgptalkieBusy = true; if (btn) btn.classList.add('kgptalkieBusy');
    try {
     const m = ed.getModel();
     for (let i = from; i <= to && i < ctxs(ed).length; i++) {
@@ -457,18 +457,18 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
      const job = A.run(ed, i); if (!job) continue; await A.done(job);
      const rt = job.x.presentation && job.x.presentation.renderTarget; if (rt && rt.querySelector('.resultText.error')) break;
     }
-   } finally { W.kgpBusy = false; if (btn) btn.classList.remove('kgpBusy'); }
+   } finally { W.kgptalkieBusy = false; if (btn) btn.classList.remove('kgptalkieBusy'); }
   },
   runAll(ed, btn) { return A.runRange(ed, 0, ctxs(ed).length - 1, btn); },
   runAbove(ed, i) { if (i > 0) return A.runRange(ed, 0, i - 1); },
   runBelow(ed, i) { return A.runRange(ed, i, ctxs(ed).length - 1); },
-  clearAll(ed) { const ce = ed.kgpCE; if (ce) return ce.removeAllResults(); },
+  clearAll(ed) { const ce = ed.kgptalkieCE; if (ce) return ce.removeAllResults(); },
   clearOne(ed, i) { const x = ctxs(ed)[i]; if (x) x.removeResult(); },
   /* like Jupyter's restart: every output gone, the next run is [1] again */
-  async restart(ed) { if (W.kgpBusy) return; await A.clearAll(ed); R.n = 0; R.seen = new WeakMap(); R.num = new WeakMap(); dirty(ed); if (ed.kgpNB) ed.kgpNB.dsig = ''; },
+  async restart(ed) { if (W.kgptalkieBusy) return; await A.clearAll(ed); R.n = 0; R.seen = new WeakMap(); R.num = new WeakMap(); dirty(ed); if (ed.kgptalkieNB) ed.kgptalkieNB.dsig = ''; },
   /* new empty cell at index `at` (0..length), code ('mysql') or 'markdown' */
   async insertAt(ed, at, lang) {
-   const m = ed.getModel(), ec = m && m.executionContexts; if (!ed.kgpCE || !ctxs(ed).length) return;
+   const m = ed.getModel(), ec = m && m.executionContexts; if (!ed.kgptalkieCE || !ctxs(ed).length) return;
    lang = lang || ec.language || 'mysql'; at = Math.max(0, Math.min(at, ctxs(ed).length));
    await act(ed, 'Insert Cell', () => { insCore(ed, at, lang); });
    const nx = ctxs(ed)[at]; if (isMd(nx)) MDE.add(nx);
@@ -477,14 +477,14 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
   addBelow(ed, i, lang) { return A.insertAt(ed, i < 0 ? ctxs(ed).length : i + 1, lang); },
   addAbove(ed, i, lang) { return A.insertAt(ed, Math.max(0, i), lang); },
   async remove(ed, i) {
-   const all = ctxs(ed), x = all[i]; if (!ed.kgpCE || !x) return;
+   const all = ctxs(ed), x = all[i]; if (!ed.kgptalkieCE || !x) return;
    if (all.length === 1) await act(ed, 'Delete Cell', () => setCell(ed, 0, { text: '', lang: x.language, res: null }));
    else await act(ed, 'Delete Cell', () => remCore(ed, i));
    dirty(ed); selectCell(ed, Math.min(i, ctxs(ed).length - 1));
   },
   /* swap with the neighbour; text, type and output all move */
   async move(ed, i, dir) {
-   const m = ed.getModel(), all = ctxs(ed); const j = i + dir; if (!ed.kgpCE || j < 0 || j >= all.length) return;
+   const m = ed.getModel(), all = ctxs(ed); const j = i + dir; if (!ed.kgptalkieCE || j < 0 || j >= all.length) return;
    const a = Math.min(i, j), b = Math.max(i, j), X = all[a], Y = all[b]; if (isCmd(m, X) || isCmd(m, Y)) return;
    const cx = { text: textOf(m, X), lang: X.language, res: resOf(X), num: R.num.get(X), edit: MDE.has(X) };
    const cy = { text: textOf(m, Y), lang: Y.language, res: resOf(Y), num: R.num.get(Y), edit: MDE.has(Y) };
@@ -493,29 +493,29 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
    dirty(ed); selectCell(ed, j);
   },
   async format(ed, i) {
-   const m = ed.getModel(), x = ctxs(ed)[i]; if (!ed.kgpCE || !x || isMd(x) || isCmd(m, x)) return;
+   const m = ed.getModel(), x = ctxs(ed)[i]; if (!ed.kgptalkieCE || !x || isMd(x) || isCmd(m, x)) return;
    const t = textOf(m, x); if (!t.trim()) return;
    const nt = t.trim().includes('\n') ? oneLine(t) : multiLine(t); if (nt === t) return;
    await act(ed, 'Format Cell', () => setCell(ed, i, { text: nt, lang: x.language, res: resOf(x), num: R.num.get(x) }));
-   dirty(ed); if (!ed.kgpCmd) focusCell(ed, i, true);
+   dirty(ed); if (!ed.kgptalkieCmd) focusCell(ed, i, true);
   },
   /* lang: 'mysql' | 'markdown' | 'ai' (an AI cell is a markdown context whose first line is AI_MARK) */
   async setType(ed, i, lang) {
-   const m = ed.getModel(), x = ctxs(ed)[i]; if (!ed.kgpCE || !x || isCmd(m, x)) return;
+   const m = ed.getModel(), x = ctxs(ed)[i]; if (!ed.kgptalkieCE || !x || isCmd(m, x)) return;
    const cur = isAi(x) ? 'ai' : isMd(x) ? 'markdown' : 'mysql'; if (cur === lang) return;
    let text = textOf(m, x); if (cur === 'ai') text = text.split('\n').slice(1).join('\n');
    if (lang === 'ai') text = AI_MARK + '\n' + text;
    const label = lang === 'markdown' ? 'Change to Markdown' : lang === 'ai' ? 'Change to AI Cell' : 'Change to SQL';
    await act(ed, label, () => setCell(ed, i, { text, lang: lang === 'ai' ? 'markdown' : lang, res: null }));
    const y = ctxs(ed)[i]; MDE.delete(y); AIO.delete(y); syncAi(ed); dirty(ed);
-   if (!rendered(y) && !ed.kgpCmd) focusCell(ed, i, true); else if (ed.kgpNB) { ed.kgpNB.sel = i; ed.kgpNB.dsig = ''; }
+   if (!rendered(y) && !ed.kgptalkieCmd) focusCell(ed, i, true); else if (ed.kgptalkieNB) { ed.kgptalkieNB.sel = i; ed.kgptalkieNB.dsig = ''; }
   },
   toggleType(ed, i) { const x = ctxs(ed)[i]; if (x) return A.setType(ed, i, isMd(x) ? 'mysql' : 'markdown'); },
   async addAi(ed, i) { await A.insertAt(ed, i < 0 ? ctxs(ed).length : i + 1, 'markdown'); const k = selIndex(ed); await A.setType(ed, k, 'ai'); },
-  copy(ed, i) { const m = ed.getModel(), x = ctxs(ed)[i]; if (x) W.kgpClip = { text: textOf(m, x), lang: x.language }; },
+  copy(ed, i) { const m = ed.getModel(), x = ctxs(ed)[i]; if (x) W.kgptalkieClip = { text: textOf(m, x), lang: x.language }; },
   async cut(ed, i) { A.copy(ed, i); await A.remove(ed, i); },
   async paste(ed, i, above) {
-   const c = W.kgpClip; if (!c || !ed.kgpCE || !ctxs(ed).length) return; const at = above ? Math.max(0, i) : i + 1;
+   const c = W.kgptalkieClip; if (!c || !ed.kgptalkieCE || !ctxs(ed).length) return; const at = above ? Math.max(0, i) : i + 1;
    await act(ed, 'Paste Cell', async () => { const k = insCore(ed, at, c.lang); await setCell(ed, k, { text: c.text, lang: c.lang, res: null }); });
    dirty(ed); selectCell(ed, at);
   },
@@ -543,17 +543,17 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
   },
   undo(ed) { const m = ed.getModel(); if (m) m.undo(); },
   redo(ed) { const m = ed.getModel(); if (m) m.redo(); },
-  edit(ed, i) { const x = ctxs(ed)[i]; if (!isMd(x)) return; exitCmd(ed); MDE.add(x); dirty(ed); ed.kgpPendingFocus = { x, atEnd: true }; },
+  edit(ed, i) { const x = ctxs(ed)[i]; if (!isMd(x)) return; exitCmd(ed); MDE.add(x); dirty(ed); ed.kgptalkiePendingFocus = { x, atEnd: true }; },
   /* render a markdown cell; advance = move on like Jupyter's Shift+Enter */
   render(ed, i, advance = true) {
-   const all = ctxs(ed), x = all[i]; if (!isMd(x)) return; MDE.delete(x); dirty(ed); if (ed.kgpNB) ed.kgpNB.sel = i;
+   const all = ctxs(ed), x = all[i]; if (!isMd(x)) return; MDE.delete(x); dirty(ed); if (ed.kgptalkieNB) ed.kgptalkieNB.sel = i;
    if (advance) { if (i + 1 < all.length) selectCell(ed, i + 1); else A.insertAt(ed, all.length, 'mysql'); }
   },
  };
 
  /* bottom-right SQL / Markdown toggle on every cell */
  const langBtn = (ed, i, x) => {
-  const b = document.createElement('button'); b.className = 'kgpLang' + (isAi(x) ? ' kgpLangAi' : ''); b.textContent = isAi(x) ? 'AI' : isMd(x) ? 'Markdown' : 'SQL';
+  const b = document.createElement('button'); b.className = 'kgptalkieLang' + (isAi(x) ? ' kgptalkieLangAi' : ''); b.textContent = isAi(x) ? 'AI' : isMd(x) ? 'Markdown' : 'SQL';
   b.title = 'Cell type. Click to change it: SQL (Y), Markdown (M) or AI';
   b.addEventListener('mousedown', e => {
    if (e.button !== 0) return; e.preventDefault(); e.stopPropagation(); closeMenu();
@@ -566,20 +566,20 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
  };
 
  /* ---------- command mode (Esc, like Jupyter): no caret anywhere, keys act on the selected cell ---------- */
- const sinkOf = ed => { const host = ed.getDomNode().closest('.editorHost'); const bar = host && host.parentElement && host.parentElement.querySelector(':scope > .kgpNbBar'); return bar ? bar.querySelector('.kgpSink') : null; };
+ const sinkOf = ed => { const host = ed.getDomNode().closest('.editorHost'); const bar = host && host.parentElement && host.parentElement.querySelector(':scope > .kgptalkieNbBar'); return bar ? bar.querySelector('.kgptalkieSink') : null; };
  const enterCmd = (ed, i) => {
-  const S = ed.kgpNB, p = ed.getPosition();
-  if (p) { ed.kgpCmdPos = p; ed.setSelection({ startLineNumber: p.lineNumber, startColumn: p.column, endLineNumber: p.lineNumber, endColumn: p.column }); }
+  const S = ed.kgptalkieNB, p = ed.getPosition();
+  if (p) { ed.kgptalkieCmdPos = p; ed.setSelection({ startLineNumber: p.lineNumber, startColumn: p.column, endLineNumber: p.lineNumber, endColumn: p.column }); }
   if (S) { S.sel = (i === undefined || i < 0) ? (p ? cellAt(ed, p.lineNumber) : S.sel) : i; S.dsig = ''; }
-  ed.kgpCmd = true; ed.getDomNode().classList.add('kgpCmd');
+  ed.kgptalkieCmd = true; ed.getDomNode().classList.add('kgptalkieCmd');
   const k = sinkOf(ed); if (k) k.focus({ preventScroll: true });
  };
- const exitCmd = ed => { ed.kgpCmd = false; const d = ed.getDomNode(); if (d) d.classList.remove('kgpCmd'); };
+ const exitCmd = ed => { ed.kgptalkieCmd = false; const d = ed.getDomNode(); if (d) d.classList.remove('kgptalkieCmd'); };
  const enterEdit = (ed, i) => {
   const x = ctxs(ed)[i]; if (!x) return;
   if (rendered(x)) { A.edit(ed, i); return; }
-  exitCmd(ed); const p = ed.kgpCmdPos;
-  if (p && cellAt(ed, p.lineNumber) === i) { ed.setPosition(p); ed.revealLineInCenterIfOutsideViewport(p.lineNumber); ed.focus(); if (ed.kgpNB) ed.kgpNB.sel = i; }
+  exitCmd(ed); const p = ed.kgptalkieCmdPos;
+  if (p && cellAt(ed, p.lineNumber) === i) { ed.setPosition(p); ed.revealLineInCenterIfOutsideViewport(p.lineNumber); ed.focus(); if (ed.kgptalkieNB) ed.kgptalkieNB.sel = i; }
   else focusCell(ed, i, false);
  };
  const hasTextSel = () => { const s = getSelection(); return !!s && !s.isCollapsed && String(s).length > 0; };
@@ -597,7 +597,7 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
   else if (e.key === 'End' && plain) selectCell(ed, all.length - 1);
   else if (L('A') && plain && !sh) A.addAbove(ed, i, 'mysql');
   else if (L('B') && plain && !sh) A.addBelow(ed, i, 'mysql');
-  else if (L('D') && plain && !sh) { const now = Date.now(); if (ed.kgpLastD && now - ed.kgpLastD < 700) { ed.kgpLastD = 0; A.remove(ed, i); } else ed.kgpLastD = now; }
+  else if (L('D') && plain && !sh) { const now = Date.now(); if (ed.kgptalkieLastD && now - ed.kgptalkieLastD < 700) { ed.kgptalkieLastD = 0; A.remove(ed, i); } else ed.kgptalkieLastD = now; }
   else if (L('Z') && ((plain && !sh) || (ctrl && !sh && !alt))) A.undo(ed);
   else if ((L('Z') && plain && sh) || (L('Y') && ctrl && !alt) || (L('Z') && ctrl && sh && !alt)) A.redo(ed);
   else if (L('M') && plain && !sh) A.setType(ed, i, 'markdown');
@@ -609,14 +609,14 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
   else h = false;
   if (h) { e.preventDefault(); e.stopPropagation(); }
  };
- W.kgpActions = A;
+ W.kgptalkieActions = A;
 
  /* ---------- AI (from SQL Notebook Studio): Explain, Optimize, Fix, Explain Result, AI cells ----------
     The plugin server calls the provider; API keys stay there, encrypted, and never reach this page.
     Ad-hoc SQL (schema for prompts, EXPLAIN) goes through the notebook's own connection backend. */
- const AIURL = 'http://127.0.0.1:9241/kgp/ai/';
+ const AIURL = 'http://127.0.0.1:9241/kgptalkie/ai/';
  const aiReq = async (op, body, signal) => {
-  const r = await fetch(AIURL + op, { method: body ? 'POST' : 'GET', headers: body ? { 'X-KGP': '1', 'Content-Type': 'application/json' } : { 'X-KGP': '1' }, body: body ? JSON.stringify(body) : undefined, signal });
+  const r = await fetch(AIURL + op, { method: body ? 'POST' : 'GET', headers: body ? { 'X-KGPTalkie': '1', 'Content-Type': 'application/json' } : { 'X-KGPTalkie': '1' }, body: body ? JSON.stringify(body) : undefined, signal });
   if (!r.ok) { let e = 'HTTP ' + r.status; try { e = (await r.json()).error || e; } catch (_) { } throw new Error(e); }
   return r;
  };
@@ -675,7 +675,7 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
   const st = { kind, status: 'streaming', md: '', model: '', ver: 1, ctl: new AbortController() }; AIO.set(x, st);
   const bump = () => { st.ver++; };
   let cfg;
-  try { cfg = await aiCfg(); } catch (e) { st.status = 'error'; st.md = '**AI error:** the plugin server did not answer. Open Workbench with the "Workbench (KGP)" shortcut.'; st.ctl = null; bump(); return st; }
+  try { cfg = await aiCfg(); } catch (e) { st.status = 'error'; st.md = '**AI error:** the plugin server did not answer. Open Workbench with the "Modern MySQL Workbench" shortcut.'; st.ctl = null; bump(); return st; }
   if (!cfg.ready) { st.status = 'setup'; st.md = 'AI is not set up yet. Choose a provider: OpenAI, Anthropic, OpenRouter, Ollama or your own API.'; st.ctl = null; bump(); return st; }
   st.model = cfg.provider + ' · ' + cfg.model; bump();
   try {
@@ -739,13 +739,13 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
   const title = st.status === 'setup' ? 'Set up AI' : AI_TITLE[st.kind] || 'AI';
   let body = st.md || '';
   if (st.kind === 'generate' && st.status === 'done') body = body.replace(/```[\s\S]*?```/g, '').trim();
-  const bodyHtml = st.status === 'streaming' && !st.md ? '<div class="kgpAiSk"><i></i><i></i><i></i></div>' : (body ? mdToHtml(body) : '');
+  const bodyHtml = st.status === 'streaming' && !st.md ? '<div class="kgptalkieAiSk"><i></i><i></i><i></i></div>' : (body ? mdToHtml(body) : '');
   let acts = '';
   if (st.status === 'setup' || st.status === 'error') acts += aiBtn('configure', 'settings-gear', 'Configure AI');
   if (st.status === 'done' && st.sql && (st.kind === 'fix' || st.kind === 'optimize')) acts += (DDL.test(st.sql) ? aiBtn('addcell', 'add', 'Add as new cell') : aiBtn('apply', 'check', 'Apply to cell')) + aiBtn('copysql', 'copy', 'Copy SQL');
-  if (st.status === 'done' && st.kind === 'generate' && st.note) acts += '<span class="kgpAiNote"><span class="codicon codicon-arrow-down"></span>' + esc(st.note) + '</span>' + aiBtn('runnext', 'play', 'Run it');
+  if (st.status === 'done' && st.kind === 'generate' && st.note) acts += '<span class="kgptalkieAiNote"><span class="codicon codicon-arrow-down"></span>' + esc(st.note) + '</span>' + aiBtn('runnext', 'play', 'Run it');
   if (st.status === 'streaming') acts += aiBtn('stop', 'debug-stop', 'Stop');
-  return `<div class="kgpAi kgpAi-${st.status}"><div class="kgpAiH"><span class="codicon codicon-sparkle"></span><b>${esc(title)}</b>${st.status === 'streaming' ? '<span class="codicon codicon-loading kgpSpin"></span>' : ''}<span class="kgpAiM">${esc(st.model || '')}</span><span class="kgpSp"></span>${st.kind !== 'generate' || st.status !== 'streaming' ? '<button data-ai="dismiss" title="Dismiss"><span class="codicon codicon-close"></span></button>' : ''}</div><div class="kgpMdBody kgpAiB">${bodyHtml}</div>${acts ? '<div class="kgpAiActs">' + acts + '</div>' : ''}</div>`;
+  return `<div class="kgptalkieAi kgptalkieAi-${st.status}"><div class="kgptalkieAiH"><span class="codicon codicon-sparkle"></span><b>${esc(title)}</b>${st.status === 'streaming' ? '<span class="codicon codicon-loading kgptalkieSpin"></span>' : ''}<span class="kgptalkieAiM">${esc(st.model || '')}</span><span class="kgptalkieSp"></span>${st.kind !== 'generate' || st.status !== 'streaming' ? '<button data-ai="dismiss" title="Dismiss"><span class="codicon codicon-close"></span></button>' : ''}</div><div class="kgptalkieMdBody kgptalkieAiB">${bodyHtml}</div>${acts ? '<div class="kgptalkieAiActs">' + acts + '</div>' : ''}</div>`;
  };
  const aiClick = async (ed, x, e) => {
   const b = e.target.closest('button[data-ai]'); if (!b) { e.stopPropagation(); return; }
@@ -759,12 +759,12 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
   else if (a === 'runnext' && i >= 0) A.run(ed, i + 1);
  };
  const paintAi = ed => {
-  const S = ed.kgpNB; if (!S) return; S.ai = S.ai || new Map(); const arr = ctxs(ed), now = performance.now();
+  const S = ed.kgptalkieNB; if (!S) return; S.ai = S.ai || new Map(); const arr = ctxs(ed), now = performance.now();
   for (const [x, z] of [...S.ai]) if (!arr.includes(x) || !AIO.get(x) || z.line !== x.endLine) { ed.changeViewZones(a => a.removeZone(z.id)); S.ai.delete(x); }
   arr.forEach((x, i) => {
    const st = AIO.get(x); if (!st || rendered(x)) return; let z = S.ai.get(x);
    if (!z) {
-    const node = document.createElement('div'); node.className = 'kgpAiZone';
+    const node = document.createElement('div'); node.className = 'kgptalkieAiZone';
     const zone = { afterLineNumber: x.endLine, ordinal: 5e8, heightInPx: 64, domNode: node, suppressMouseDown: true, showInHiddenAreas: true };
     let id; ed.changeViewZones(a => { id = a.addZone(zone); });
     z = { id, zone, node, line: x.endLine, ver: -1, t: 0, h: 64 }; S.ai.set(x, z);
@@ -782,32 +782,32 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
    const rt = x.presentation && x.presentation.renderTarget; if (!rt) return;
    const er = rt.querySelector('.resultText.error');
    // our own run notes (timeout, Not run, no variable value, read-only) leave nothing for AI to fix
-   if (er && !rt.querySelector('.kgpFixBtn') && !/Stopped after \d+ s \(query timeout|Not run\.|Cancelled: a variable has no value|is read-only\. This statement changes data/.test(rt.textContent)) { const b = document.createElement('button'); b.className = 'kgpFixBtn'; b.innerHTML = '<span class="codicon codicon-sparkle"></span>Fix with AI'; b.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); A.aiFix(ed, ctxs(ed).indexOf(x)); }, { signal: AC.signal }); er.insertAdjacentElement('afterend', b); }
-   try { resultBar(ed, x, rt); pinButtons(rt); } catch (e) { W.kgpErr = String(e && e.stack || e); }
+   if (er && !rt.querySelector('.kgptalkieFixBtn') && !/Stopped after \d+ s \(query timeout|Not run\.|Cancelled: a variable has no value|is read-only\. This statement changes data/.test(rt.textContent)) { const b = document.createElement('button'); b.className = 'kgptalkieFixBtn'; b.innerHTML = '<span class="codicon codicon-sparkle"></span>Fix with AI'; b.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); A.aiFix(ed, ctxs(ed).indexOf(x)); }, { signal: AC.signal }); er.insertAdjacentElement('afterend', b); }
+   try { resultBar(ed, x, rt); pinButtons(rt); } catch (e) { W.kgptalkieErr = String(e && e.stack || e); }
   });
  };
 
  /* small modal dialogs */
- const dlg = (title, inner) => { document.querySelectorAll('.kgpDlgBack').forEach(d => d.remove()); const bk = document.createElement('div'); bk.className = 'kgpDlgBack'; bk.innerHTML = `<div class="kgpDlg" role="dialog"><div class="kgpDlgT">${esc(title)}</div>${inner}</div>`; document.body.appendChild(bk); bk.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); bk.remove(); } }); return bk; };
+ const dlg = (title, inner) => { document.querySelectorAll('.kgptalkieDlgBack').forEach(d => d.remove()); const bk = document.createElement('div'); bk.className = 'kgptalkieDlgBack'; bk.innerHTML = `<div class="kgptalkieDlg" role="dialog"><div class="kgptalkieDlgT">${esc(title)}</div>${inner}</div>`; document.body.appendChild(bk); bk.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); bk.remove(); } }); return bk; };
  const askDlg = (title, text, buttons) => new Promise(res => {
-  const bk = dlg(title, `<p>${esc(text)}</p><div class="kgpDlgB">${buttons.map((b, k) => `<button class="${k === 0 ? 'pri' : ''}" data-b="${esc(b)}">${esc(b)}</button>`).join('')}</div>`);
+  const bk = dlg(title, `<p>${esc(text)}</p><div class="kgptalkieDlgB">${buttons.map((b, k) => `<button class="${k === 0 ? 'pri' : ''}" data-b="${esc(b)}">${esc(b)}</button>`).join('')}</div>`);
   bk.addEventListener('mousedown', e => { const b = e.target.closest('button[data-b]'); if (b) { e.preventDefault(); bk.remove(); res(b.dataset.b); } else if (e.target === bk) { bk.remove(); res(null); } });
   const f = bk.querySelector('button'); if (f) f.focus();
  });
  const aiDialog = async () => {
-  let cfg; try { cfg = await aiCfg(); } catch (e) { await askDlg('Configure AI', 'The plugin server did not answer. Open Workbench with the "Workbench (KGP)" shortcut.', ['OK']); return; }
+  let cfg; try { cfg = await aiCfg(); } catch (e) { await askDlg('Configure AI', 'The plugin server did not answer. Open Workbench with the "Modern MySQL Workbench" shortcut.', ['OK']); return; }
   const opts = cfg.providers.map(p => `<option value="${p.id}"${p.id === cfg.provider ? ' selected' : ''}>${esc(p.label)}</option>`).join('');
   const bk = dlg('Configure AI', `
    <label>Provider<select data-f="provider">${opts}</select></label>
-   <div class="kgpDlgHint" data-f="detail"></div>
+   <div class="kgptalkieDlgHint" data-f="detail"></div>
    <label data-row="base">Base URL<input data-f="baseUrl" spellcheck="false"></label>
    <label data-row="key">API key<input data-f="apiKey" type="password" autocomplete="off" spellcheck="false"></label>
-   <div class="kgpDlgHint" data-row="key2">Stored encrypted on this PC by the plugin (Windows DPAPI). Never written to notebooks or settings. <a href="#" data-f="forget">Forget the saved key</a></div>
-   <label>Model<span class="kgpDlgRow"><input data-f="model" list="kgpAiModels" spellcheck="false"><button data-f="load">Load models</button></span></label><datalist id="kgpAiModels"></datalist>
+   <div class="kgptalkieDlgHint" data-row="key2">Stored encrypted on this PC by the plugin (Windows DPAPI). Never written to notebooks or settings. <a href="#" data-f="forget">Forget the saved key</a></div>
+   <label>Model<span class="kgptalkieDlgRow"><input data-f="model" list="kgptalkieAiModels" spellcheck="false"><button data-f="load">Load models</button></span></label><datalist id="kgptalkieAiModels"></datalist>
    <label class="chk"><input type="checkbox" data-f="allowResultData"> Send result rows to AI without asking (Explain Result). A local model never asks.</label>
    <label class="chk"><input type="checkbox" data-f="runGeneratedSql"> Run SQL from an AI cell right after it is written</label>
-   <div class="kgpDlgStatus" data-f="status"></div>
-   <div class="kgpDlgB"><button class="pri" data-f="save">Save and test</button><button data-f="close">Close</button></div>`);
+   <div class="kgptalkieDlgStatus" data-f="status"></div>
+   <div class="kgptalkieDlgB"><button class="pri" data-f="save">Save and test</button><button data-f="close">Close</button></div>`);
   const q = f => bk.querySelector(`[data-f="${f}"]`), row = r => bk.querySelector(`[data-row="${r}"]`);
   const DETAIL = { openai: 'GPT models. Needs an API key.', anthropic: 'Claude models. Needs an API key.', openrouter: 'Hundreds of models with one key.', ollama: 'Local models on this computer. No key, nothing leaves your machine.', custom: 'LM Studio, vLLM, LiteLLM and other OpenAI-compatible APIs.' };
   const BASE = { ollama: 'http://localhost:11434', custom: 'http://localhost:1234/v1' };
@@ -819,10 +819,10 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
    row('key').style.display = row('key2').style.display = (info.needsKey || p === 'custom') ? '' : 'none';
    q('forget').style.display = cfg.hasKey[p] ? '' : 'none';
    q('apiKey').value = ''; q('apiKey').placeholder = cfg.hasKey[p] ? 'A key is saved. Leave empty to keep it.' : (p === 'custom' ? 'Optional' : 'Paste your API key');
-   if (!keepModel) { q('baseUrl').value = p === cfg.provider ? (cfg.baseUrl || BASE[p] || '') : (BASE[p] || ''); q('model').value = p === cfg.provider ? cfg.model : ({ openai: 'gpt-6.1-sol', anthropic: 'claude-sonnet-5-5', openrouter: 'openrouter/auto' }[p] || ''); bk.querySelector('#kgpAiModels').innerHTML = ''; }
+   if (!keepModel) { q('baseUrl').value = p === cfg.provider ? (cfg.baseUrl || BASE[p] || '') : (BASE[p] || ''); q('model').value = p === cfg.provider ? cfg.model : ({ openai: 'gpt-6.1-sol', anthropic: 'claude-sonnet-5-5', openrouter: 'openrouter/auto' }[p] || ''); bk.querySelector('#kgptalkieAiModels').innerHTML = ''; }
   };
   sync(false); q('baseUrl').value = cfg.baseUrl || BASE[cfg.provider] || ''; q('model').value = cfg.model || '';
-  const status = (t, cls) => { const s = q('status'); s.textContent = t; s.className = 'kgpDlgStatus ' + (cls || ''); };
+  const status = (t, cls) => { const s = q('status'); s.textContent = t; s.className = 'kgptalkieDlgStatus ' + (cls || ''); };
   const vals = () => ({ provider: q('provider').value, baseUrl: q('baseUrl').value.trim(), apiKey: q('apiKey').value.trim(), model: q('model').value.trim() });
   q('provider').addEventListener('change', () => { sync(false); status(''); });
   bk.addEventListener('mousedown', async e => {
@@ -832,7 +832,7 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
    else if (f === 'forget') { e.preventDefault(); cfg = await (await aiReq('config', { provider: q('provider').value, forgetKey: true })).json(); sync(true); status('The saved key was removed.', 'ok'); }
    else if (f === 'load') {
     e.preventDefault(); status('Loading models...');
-    try { const j = await (await aiReq('models', vals())).json(); bk.querySelector('#kgpAiModels').innerHTML = j.models.map(m => `<option value="${esc(m)}">`).join(''); status(j.models.length + ' models. Type to filter in the Model box.', 'ok'); if (!q('model').value && j.models[0]) q('model').value = j.models[0]; }
+    try { const j = await (await aiReq('models', vals())).json(); bk.querySelector('#kgptalkieAiModels').innerHTML = j.models.map(m => `<option value="${esc(m)}">`).join(''); status(j.models.length + ' models. Type to filter in the Model box.', 'ok'); if (!q('model').value && j.models[0]) q('model').value = j.models[0]; }
     catch (err) { status('Could not list models: ' + err.message + '. You can type a model ID.', 'bad'); }
    } else if (f === 'save') {
     e.preventDefault(); const v = vals();
@@ -848,16 +848,16 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
   });
   q('provider').focus();
  };
- W.kgpAi = { dialog: () => aiDialog(), schemaText, sqlRun, resultSet };
+ W.kgptalkieAi = { dialog: () => aiDialog(), schemaText, sqlRun, resultSet };
 
  /* ---------- results (from SQL Notebook Studio): toolbar, search, column filters, copy / save, chart, value viewer ----------
     Works on Workbench's own Tabulator grid (found through the result's render root), so its sort and resize stay. */
- const RS = W.kgpRes || (W.kgpRes = new WeakMap());                 // context -> result view state
+ const RS = W.kgptalkieRes || (W.kgptalkieRes = new WeakMap());                 // context -> result view state
  const rsState = x => { let s = RS.get(x); if (!s) { s = { view: 'table', q: '', filt: false, cf: {}, expand: false, chart: null }; RS.set(x, s); } return s; };
  const tabOf = rt => {
-  if (rt.kgpTab && rt.kgpTab.element && rt.kgpTab.element.isConnected && rt.kgpTab.element.offsetWidth) return rt.kgpTab;
+  if (rt.kgptalkieTab && rt.kgptalkieTab.element && rt.kgptalkieTab.element.isConnected && rt.kgptalkieTab.element.offsetWidth) return rt.kgptalkieTab;
   let hit = null; const walk = v => { if (!v || hit) return; const c = v.__c; if (c && c.tabulator && typeof c.tabulator.getData === 'function' && c.tabulator.element && c.tabulator.element.offsetWidth) hit = c.tabulator; (v.__k || []).forEach(walk); };
-  walk(rt.__k); rt.kgpTab = hit; return hit;
+  walk(rt.__k); rt.kgptalkieTab = hit; return hit;
  };
  const coll = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
  const isNil = v => v === null || v === undefined;
@@ -901,7 +901,7 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
  };
  const fileBase = sql => { const m = /\bfrom\s+[`"[]?([\w.$]+)/i.exec(sql || ''); return (m ? m[1] : 'result').replace(/[^\w.-]/g, '_'); };
  let nbToastT = 0;
- const nbToast = msg => { let b = document.querySelector('.kgpNbToast'); if (!b) { b = document.createElement('div'); b.className = 'kgpNbToast'; document.body.appendChild(b); } b.textContent = msg; b.classList.add('on'); clearTimeout(nbToastT); nbToastT = setTimeout(() => b.classList.remove('on'), 1600); };
+ const nbToast = msg => { let b = document.querySelector('.kgptalkieNbToast'); if (!b) { b = document.createElement('div'); b.className = 'kgptalkieNbToast'; document.body.appendChild(b); } b.textContent = msg; b.classList.add('on'); clearTimeout(nbToastT); nbToastT = setTimeout(() => b.classList.remove('on'), 1600); };
  const flash = (el, text) => { const o = el.dataset.t || el.lastChild.textContent; el.dataset.t = o; el.lastChild.textContent = text; setTimeout(() => { el.lastChild.textContent = o; }, 1500); };
 
  /* charts: plain SVG (no library), the same choices as SQL Notebook Studio */
@@ -919,7 +919,7 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
  };
  const fmtN = v => Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(Math.abs(v) >= 1e7 ? 0 : 1) + 'M' : Math.abs(v) >= 1e4 ? (v / 1e3).toFixed(Math.abs(v) >= 1e5 ? 0 : 1) + 'k' : String(+v.toFixed(2));
  const chartSvg = (cfg, d, W0, H0) => {
-  const xi = d.head.indexOf(cfg.x), ys = cfg.y.map(n => d.head.indexOf(n)).filter(i => i >= 0); if (xi < 0 || !ys.length) return '<div class="kgpChartMsg">Choose a column for X and at least one number column for Y.</div>';
+  const xi = d.head.indexOf(cfg.x), ys = cfg.y.map(n => d.head.indexOf(n)).filter(i => i >= 0); if (xi < 0 || !ys.length) return '<div class="kgptalkieChartMsg">Choose a column for X and at least one number column for Y.</div>';
   const pie = cfg.type === 'pie', max = pie ? 60 : 5000, rows = d.rows.slice(0, max), cut = d.rows.length > max;
   const e = s => esc(String(s)); let s = '';
   const legend = (pie ? rows.map(r => sval(r[xi]) ?? 'NULL') : ys.map(i => d.head[i])).slice(0, 12);
@@ -977,7 +977,7 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
   }
   return { svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${W0}" height="${H0}" font-family="Segoe UI, sans-serif" font-size="11" fill="#555">${lg}<line x1="${L}" x2="${horiz ? L : L + pw}" y1="${T + ph}" y2="${horiz ? T : T + ph}" stroke="#CCC"/>${s}</svg>`, cut, max };
  };
- const chartKey = sql => 'kgpChart:' + hashStr(String(sql || '').trim());
+ const chartKey = sql => 'kgptalkieChart:' + hashStr(String(sql || '').trim());
  // a chart is remembered by the cell's own text (so {{variables}} do not change the key), else by the statement that ran
  const cellCode = x => (x && typeof x.code === 'string' && x.code.trim()) || '';
  const chartCfg = (x, rs, d) => { const st = rsState(x); if (!st.chart) { let saved = null; for (const k of [cellCode(x), rs.sql]) { if (!k || saved) continue; try { saved = JSON.parse(store.get(chartKey(k), 'null')); } catch (e) { } } st.chart = saved && saved.cfg && d.head.includes(saved.cfg.x) ? saved.cfg : autoChart(d); if (saved && saved.view === 'chart' && st.chart) st.view = 'chart'; } return st.chart; };
@@ -986,42 +986,42 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
  const renderChart = (ed, x, rt, t) => {
   const rs = resultSet(x); if (!rs) return; const d = { head: rs.cols, rows: rs.rows }; const st = rsState(x);
   if (t) { const v = visible(t); d.head = v.head; d.rows = v.rows; }
-  const cfg = chartCfg(x, rs, d); let box = rt.querySelector(':scope > .kgpChartBox');
-  if (!box) { box = document.createElement('div'); box.className = 'kgpChartBox'; rt.appendChild(box); box.addEventListener('mousedown', e => chartClick(ed, x, rt, e), { signal: AC.signal }); box.addEventListener('change', e => chartChange(ed, x, rt, e), { signal: AC.signal }); }
+  const cfg = chartCfg(x, rs, d); let box = rt.querySelector(':scope > .kgptalkieChartBox');
+  if (!box) { box = document.createElement('div'); box.className = 'kgptalkieChartBox'; rt.appendChild(box); box.addEventListener('mousedown', e => chartClick(ed, x, rt, e), { signal: AC.signal }); box.addEventListener('change', e => chartChange(ed, x, rt, e), { signal: AC.signal }); }
   const sig = JSON.stringify([cfg, d.rows.length, hashStr(JSON.stringify(d.rows.slice(0, 50))), st.expand, rt.clientWidth]); if (box.dataset.sig === sig) return; box.dataset.sig = sig;
-  if (!cfg) { box.innerHTML = '<div class="kgpChartMsg">No number columns to chart.</div>'; return; }
+  if (!cfg) { box.innerHTML = '<div class="kgptalkieChartMsg">No number columns to chart.</div>'; return; }
   const W0 = Math.max(320, rt.clientWidth - 40), H0 = Math.max(220, Math.min(st.expand ? 640 : 320, 420 + (st.expand ? 220 : 0)));
   const r = chartSvg(cfg, d, W0, H0);
   const numCols = d.head.filter((h, k) => d.rows.slice(0, 20).some(rr => !isNil(rr[k]) && !isNaN(toNum(rr[k]))));
-  box.innerHTML = `<div class="kgpChartCtl">${TYPES.map(([id, ic, lab]) => `<button data-c="type" data-v="${id}" class="${cfg.type === id ? 'on' : ''}" title="${lab}"><span class="codicon codicon-${ic}"></span></button>`).join('')}
-   <span class="kgpSepV"></span><label>X <select data-c="x">${d.head.map(h => `<option${h === cfg.x ? ' selected' : ''}>${esc(h)}</option>`).join('')}</select></label>
-   <button data-c="ymenu" class="kgpYBtn">Y: ${esc(cfg.y.join(', ') || 'none')} <span class="codicon codicon-chevron-down"></span></button>
+  box.innerHTML = `<div class="kgptalkieChartCtl">${TYPES.map(([id, ic, lab]) => `<button data-c="type" data-v="${id}" class="${cfg.type === id ? 'on' : ''}" title="${lab}"><span class="codicon codicon-${ic}"></span></button>`).join('')}
+   <span class="kgptalkieSepV"></span><label>X <select data-c="x">${d.head.map(h => `<option${h === cfg.x ? ' selected' : ''}>${esc(h)}</option>`).join('')}</select></label>
+   <button data-c="ymenu" class="kgptalkieYBtn">Y: ${esc(cfg.y.join(', ') || 'none')} <span class="codicon codicon-chevron-down"></span></button>
    ${cfg.type === 'bar' || cfg.type === 'area' ? `<button data-c="stack" class="${cfg.stacked ? 'on' : ''}" title="Stack series"><span class="codicon codicon-layers"></span></button>` : ''}
    ${cfg.type === 'bar' ? `<button data-c="horiz" class="${cfg.horizontal ? 'on' : ''}" title="Horizontal bars"><span class="codicon codicon-list-flat"></span></button>` : ''}
-   <span class="kgpSp"></span>${r.cut ? `<span class="kgpChartCut">First ${r.max.toLocaleString('en-US')} rows</span>` : ''}<button data-c="png" title="Save as PNG"><span class="codicon codicon-device-camera"></span></button></div>
-   <div class="kgpChartSvg">${typeof r === 'string' ? r : r.svg}</div>`;
+   <span class="kgptalkieSp"></span>${r.cut ? `<span class="kgptalkieChartCut">First ${r.max.toLocaleString('en-US')} rows</span>` : ''}<button data-c="png" title="Save as PNG"><span class="codicon codicon-device-camera"></span></button></div>
+   <div class="kgptalkieChartSvg">${typeof r === 'string' ? r : r.svg}</div>`;
   box.dataset.ycols = JSON.stringify(numCols);
  };
  const chartClick = (ed, x, rt, e) => {
   const b = e.target.closest('button[data-c]'); if (!b) return; e.preventDefault(); e.stopPropagation(); const st = rsState(x), cfg = st.chart, rs = resultSet(x); if (!cfg || !rs) return; const c = b.dataset.c;
   if (c === 'type') cfg.type = b.dataset.v; else if (c === 'stack') cfg.stacked = !cfg.stacked; else if (c === 'horiz') cfg.horizontal = !cfg.horizontal;
-  else if (c === 'ymenu') { const cols = JSON.parse(b.closest('.kgpChartBox').dataset.ycols || '[]'); if (!cols.length) return; openMenu(b, cols.map(h => ({ t: (cfg.y.includes(h) ? '✓ ' : '\u2003 ') + h, f: () => { cfg.y = cfg.y.includes(h) ? cfg.y.filter(y => y !== h) : [...cfg.y, h]; saveChart(x, rs); const bx = rt.querySelector('.kgpChartBox'); if (bx) bx.dataset.sig = ''; } }))); return; }
-  else if (c === 'png') { const svg = rt.querySelector('.kgpChartSvg svg'); if (!svg) return; const img = new Image(), w = +svg.getAttribute('width'), h = +svg.getAttribute('height');
+  else if (c === 'ymenu') { const cols = JSON.parse(b.closest('.kgptalkieChartBox').dataset.ycols || '[]'); if (!cols.length) return; openMenu(b, cols.map(h => ({ t: (cfg.y.includes(h) ? '✓ ' : '\u2003 ') + h, f: () => { cfg.y = cfg.y.includes(h) ? cfg.y.filter(y => y !== h) : [...cfg.y, h]; saveChart(x, rs); const bx = rt.querySelector('.kgptalkieChartBox'); if (bx) bx.dataset.sig = ''; } }))); return; }
+  else if (c === 'png') { const svg = rt.querySelector('.kgptalkieChartSvg svg'); if (!svg) return; const img = new Image(), w = +svg.getAttribute('width'), h = +svg.getAttribute('height');
    img.onload = () => { const cv = document.createElement('canvas'); cv.width = w * 2; cv.height = h * 2; const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height); g.scale(2, 2); g.drawImage(img, 0, 0); saveAs(fileBase(rs.sql) + '-chart.png', cv.toDataURL('image/png').split(',')[1], { 'PNG image': ['png'] }, 'base64'); };
    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(svg)); return; }
-  saveChart(x, rs); b.closest('.kgpChartBox').dataset.sig = '';
+  saveChart(x, rs); b.closest('.kgptalkieChartBox').dataset.sig = '';
  };
- const chartChange = (ed, x, rt, e) => { const s = e.target.closest('select[data-c="x"]'); if (!s) return; const st = rsState(x), rs = resultSet(x); if (!st.chart || !rs) return; st.chart.x = s.value; st.chart.y = st.chart.y.filter(y => y !== s.value); saveChart(x, rs); rt.querySelector('.kgpChartBox').dataset.sig = ''; };
+ const chartChange = (ed, x, rt, e) => { const s = e.target.closest('select[data-c="x"]'); if (!s) return; const st = rsState(x), rs = resultSet(x); if (!st.chart || !rs) return; st.chart.x = s.value; st.chart.y = st.chart.y.filter(y => y !== s.value); saveChart(x, rs); rt.querySelector('.kgptalkieChartBox').dataset.sig = ''; };
 
  /* value viewer (double-click a cell) */
  const showViewer = (rt, cell) => {
-  rt.querySelectorAll(':scope > .kgpViewer').forEach(v => v.remove());
+  rt.querySelectorAll(':scope > .kgptalkieViewer').forEach(v => v.remove());
   const v = cell.getValue(), col = cell.getColumn().getDefinition().title, row = cell.getRow().getPosition(true);
   const type = isNil(v) ? 'NULL' : typeof v === 'object' ? 'JSON' : typeof v === 'number' ? 'number' : typeof v === 'boolean' ? 'boolean' : 'text';
   let body = isNil(v) ? null : typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v);
   if (typeof v === 'string' && /^\s*[[{]/.test(v)) { try { body = JSON.stringify(JSON.parse(v), null, 2); } catch (e) { } }
-  const p = document.createElement('div'); p.className = 'kgpViewer'; p.tabIndex = -1;
-  p.innerHTML = `<div class="kgpViewerH"><b>${esc(col)}</b><span>row ${row} · ${type}${typeof v === 'string' ? ' · ' + v.length.toLocaleString('en-US') + ' chars' : ''}</span><span class="kgpSp"></span><button data-v="copy"><span class="codicon codicon-copy"></span>Copy</button><button data-v="close" title="Close (Esc)"><span class="codicon codicon-close"></span></button></div><pre>${body === null ? '<i>NULL</i>' : esc(body)}</pre>`;
+  const p = document.createElement('div'); p.className = 'kgptalkieViewer'; p.tabIndex = -1;
+  p.innerHTML = `<div class="kgptalkieViewerH"><b>${esc(col)}</b><span>row ${row} · ${type}${typeof v === 'string' ? ' · ' + v.length.toLocaleString('en-US') + ' chars' : ''}</span><span class="kgptalkieSp"></span><button data-v="copy"><span class="codicon codicon-copy"></span>Copy</button><button data-v="close" title="Close (Esc)"><span class="codicon codicon-close"></span></button></div><pre>${body === null ? '<i>NULL</i>' : esc(body)}</pre>`;
   p.addEventListener('mousedown', async e => { const b = e.target.closest('button[data-v]'); if (!b) return; e.preventDefault(); e.stopPropagation(); if (b.dataset.v === 'close') p.remove(); else { await copyText(body === null ? '' : body); flash(b, 'Copied'); } }, { signal: AC.signal });
   p.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); p.remove(); } });
   rt.appendChild(p); p.focus({ preventScroll: true });
@@ -1030,16 +1030,16 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
  /* the toolbar above each result set */
  const rbBtn = (a, icon, title, label) => `<button data-r="${a}" title="${title}"><span class="codicon codicon-${icon}"></span>${label ? '<span>' + label + '</span>' : ''}</button>`;
  const resultBar = (ed, x, rt) => {
-  const rd = x.presentation && x.presentation.resultData; let bar = rt.querySelector(':scope > .kgpResBar');
-  if (!rd || rd.type !== 'resultSets') { if (bar) bar.remove(); rt.querySelectorAll(':scope > .kgpChartBox, :scope > .kgpViewer').forEach(n => n.remove()); rt.classList.remove('kgpChartView'); return; }
+  const rd = x.presentation && x.presentation.resultData; let bar = rt.querySelector(':scope > .kgptalkieResBar');
+  if (!rd || rd.type !== 'resultSets') { if (bar) bar.remove(); rt.querySelectorAll(':scope > .kgptalkieChartBox, :scope > .kgptalkieViewer').forEach(n => n.remove()); rt.classList.remove('kgptalkieChartView'); return; }
   const st = rsState(x), t = tabOf(rt);
   if (!bar) {
-   bar = document.createElement('div'); bar.className = 'kgpResBar';
-   bar.innerHTML = `<span class="kgpSeg">${rbBtn('table', 'table', 'Table', 'Table')}${rbBtn('chart', 'graph', 'Chart', 'Chart')}</span><input class="kgpSearch" placeholder="Search" spellcheck="false">`
-    + rbBtn('filter', 'filter', 'Filter columns: >10, 1..5, !text, null') + rbBtn('clearf', 'clear-all', 'Clear search and filters') + '<span class="kgpSp"></span><span class="kgpMeta"></span>'
+   bar = document.createElement('div'); bar.className = 'kgptalkieResBar';
+   bar.innerHTML = `<span class="kgptalkieSeg">${rbBtn('table', 'table', 'Table', 'Table')}${rbBtn('chart', 'graph', 'Chart', 'Chart')}</span><input class="kgptalkieSearch" placeholder="Search" spellcheck="false">`
+    + rbBtn('filter', 'filter', 'Filter columns: >10, 1..5, !text, null') + rbBtn('clearf', 'clear-all', 'Clear search and filters') + '<span class="kgptalkieSp"></span><span class="kgptalkieMeta"></span>'
     + rbBtn('copy', 'copy', 'Copy rows') + rbBtn('save', 'desktop-download', 'Save rows to a file') + rbBtn('ai', 'sparkle', 'Explain this result with AI') + rbBtn('expand', 'unfold', 'Expand');
    rt.insertBefore(bar, rt.firstChild);
-   const inp = bar.querySelector('.kgpSearch'); inp.value = st.q;
+   const inp = bar.querySelector('.kgptalkieSearch'); inp.value = st.q;
    inp.addEventListener('input', () => { st.q = inp.value; const tt = tabOf(rt); if (tt) applyFilters(tt, st); }, { signal: AC.signal });
    inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') { inp.value = ''; st.q = ''; const tt = tabOf(rt); if (tt) applyFilters(tt, st); } }, { signal: AC.signal });
    inp.addEventListener('mousedown', e => e.stopPropagation(), { signal: AC.signal });
@@ -1048,10 +1048,10 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
   }
   // Workbench's cell stops dblclick from bubbling, so catch it on the way down; wait a tick so that if
   // Workbench starts its own cell editor (editable result), the editor wins and no viewer opens
-  if (t && t.element.kgpDbl !== AC) { t.element.kgpDbl = AC; t.element.addEventListener('dblclick', e => {
+  if (t && t.element.kgptalkieDbl !== AC) { t.element.kgptalkieDbl = AC; t.element.addEventListener('dblclick', e => {
    const ce = e.target.closest('.tabulator-cell[tabulator-field]'), re = ce && ce.closest('.tabulator-row'); if (!re) return;
    setTimeout(() => { try { if (ce.classList.contains('tabulator-editing') || ce.querySelector('input, textarea')) return;
-    const row = t.getRows().find(r => r.getElement() === re), cell = row && row.getCell(ce.getAttribute('tabulator-field')); if (cell) showViewer(rt, cell); } catch (er) { W.kgpErr = String(er && er.stack || er); } }, 0);
+    const row = t.getRows().find(r => r.getElement() === re), cell = row && row.getCell(ce.getAttribute('tabulator-field')); if (cell) showViewer(rt, cell); } catch (er) { W.kgptalkieErr = String(er && er.stack || er); } }, 0);
   }, { capture: true, signal: AC.signal }); }
   if (t && st.filt) filterRow(rt, t, st);
   // state on the bar
@@ -1060,22 +1060,22 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
   bar.querySelector('[data-r="filter"]').classList.toggle('on', st.filt || Object.values(st.cf).some(v => String(v).trim()));
   bar.querySelector('[data-r="clearf"]').style.display = active ? '' : 'none';
   bar.querySelector('[data-r="expand"]').classList.toggle('on', st.expand); bar.querySelector('[data-r="expand"] .codicon').className = 'codicon codicon-' + (st.expand ? 'fold-up' : 'unfold');
-  if (t) { const n = t.getDataCount(), a = t.getDataCount('active'); const meta = (a !== n ? a.toLocaleString('en-US') + ' of ' : '') + n.toLocaleString('en-US') + (n === 1 ? ' row' : ' rows'); const me = bar.querySelector('.kgpMeta'); if (me.textContent !== meta) me.textContent = meta; }
-  if (!rt.querySelector('.kgpNoRows') && t && t.getDataCount() && !t.getDataCount('active')) { }
-  rt.classList.toggle('kgpChartView', st.view === 'chart');
-  if (st.view === 'chart') renderChart(ed, x, rt, t); else { const cb = rt.querySelector(':scope > .kgpChartBox'); if (cb) cb.remove(); }
+  if (t) { const n = t.getDataCount(), a = t.getDataCount('active'); const meta = (a !== n ? a.toLocaleString('en-US') + ' of ' : '') + n.toLocaleString('en-US') + (n === 1 ? ' row' : ' rows'); const me = bar.querySelector('.kgptalkieMeta'); if (me.textContent !== meta) me.textContent = meta; }
+  if (!rt.querySelector('.kgptalkieNoRows') && t && t.getDataCount() && !t.getDataCount('active')) { }
+  rt.classList.toggle('kgptalkieChartView', st.view === 'chart');
+  if (st.view === 'chart') renderChart(ed, x, rt, t); else { const cb = rt.querySelector(':scope > .kgptalkieChartBox'); if (cb) cb.remove(); }
  };
  /* the per-column filter row: one input under each header, aligned with the columns */
  const filterRow = (rt, t, st) => {
   const hdr = t.element.querySelector('.tabulator-header'); if (!hdr) return;
-  let row = rt.querySelector(':scope .kgpFRow');
+  let row = rt.querySelector(':scope .kgptalkieFRow');
   const cols = colInfo(t); const sig = cols.map(k => k.f + ':' + k.c.getWidth()).join(',') + '|' + t.element.querySelector('.tabulator-tableholder').scrollLeft;
-  if (!row) { row = document.createElement('div'); row.className = 'kgpFRow'; hdr.insertAdjacentElement('afterend', row);
+  if (!row) { row = document.createElement('div'); row.className = 'kgptalkieFRow'; hdr.insertAdjacentElement('afterend', row);
    row.addEventListener('input', e => { const i = e.target.closest('input[data-f]'); if (!i) return; st.cf[i.dataset.f] = i.value; applyFilters(t, st); }, { signal: AC.signal });
    row.addEventListener('mousedown', e => e.stopPropagation(), { signal: AC.signal }); row.addEventListener('keydown', e => e.stopPropagation(), { signal: AC.signal }); }
   if (row.dataset.sig === sig) return; row.dataset.sig = sig;
   const all = t.getData(); const sl = t.element.querySelector('.tabulator-tableholder').scrollLeft;
-  const keep = document.activeElement && document.activeElement.closest && document.activeElement.closest('.kgpFRow') ? document.activeElement.dataset.f : null;
+  const keep = document.activeElement && document.activeElement.closest && document.activeElement.closest('.kgptalkieFRow') ? document.activeElement.dataset.f : null;
   row.innerHTML = cols.map(k => `<input data-f="${esc(k.f)}" style="width:${k.c.getWidth() - 6}px" placeholder="${numericCol(all, k.f) ? '>10' : 'contains'}" title="${numericCol(all, k.f) ? '>10  <=5  !=0  1..5  null  not null' : 'text  !text  =exact  null  not null'}" value="${esc(st.cf[k.f] || '')}" spellcheck="false">`).join('');
   row.style.transform = `translateX(${-sl}px)`;
   if (keep !== null) { const i = row.querySelector(`input[data-f="${CSS.escape(keep)}"]`); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
@@ -1084,33 +1084,33 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
   const b = e.target.closest('button[data-r]'); if (!b) return; e.preventDefault(); e.stopPropagation(); closeMenu();
   const st = rsState(x), t = tabOf(rt), rs = resultSet(x), a = b.dataset.r;
   if (a === 'table' || a === 'chart') { st.view = a; if (rs) { chartCfg(x, rs, { head: rs.cols, rows: rs.rows }); saveChart(x, rs); } }
-  else if (a === 'filter') { st.filt = !st.filt; if (!st.filt) { st.cf = {}; rt.querySelectorAll('.kgpFRow').forEach(r => r.remove()); if (t) applyFilters(t, st); } }
-  else if (a === 'clearf') { st.q = ''; st.cf = {}; const i = rt.querySelector('.kgpSearch'); if (i) i.value = ''; rt.querySelectorAll('.kgpFRow input').forEach(i2 => { i2.value = ''; }); if (t) { applyFilters(t, st); t.clearSort && t.clearSort(); } }
+  else if (a === 'filter') { st.filt = !st.filt; if (!st.filt) { st.cf = {}; rt.querySelectorAll('.kgptalkieFRow').forEach(r => r.remove()); if (t) applyFilters(t, st); } }
+  else if (a === 'clearf') { st.q = ''; st.cf = {}; const i = rt.querySelector('.kgptalkieSearch'); if (i) i.value = ''; rt.querySelectorAll('.kgptalkieFRow input').forEach(i2 => { i2.value = ''; }); if (t) { applyFilters(t, st); t.clearSort && t.clearSort(); } }
   else if (a === 'expand') st.expand = !st.expand;
   else if (a === 'ai') A.aiResult(ed, ctxs(ed).indexOf(x));
   else if (a === 'copy' && t) openMenu(b, [['tsv', 'Copy for Excel / Sheets'], ['csv', 'Copy as CSV'], ['json', 'Copy as JSON'], ['md', 'Copy as Markdown table']].map(([k, l]) => ({ t: l, f: async () => { const v = visible(t); const ok = await copyText(FMT[k](v)); nbToast(ok ? '✓ Copied ' + v.rows.length.toLocaleString('en-US') + (v.rows.length === 1 ? ' row' : ' rows') : 'Could not copy'); } })));
   else if (a === 'save' && t) openMenu(b, [{ t: 'Save as CSV...', f: () => saveAs(fileBase(rs && rs.sql) + '.csv', '\ufeff' + FMT.csv(visible(t)), { 'CSV file': ['csv'] }) }, { t: 'Save as JSON...', f: () => saveAs(fileBase(rs && rs.sql) + '.json', FMT.json(visible(t)), { 'JSON file': ['json'] }) }]);
  };
- W.kgpResApi = { FMT, visible, filterFn, tabOf, autoChart, chartSvg };
+ W.kgptalkieResApi = { FMT, visible, filterFn, tabOf, autoChart, chartSvg };
 
  /* ---------- running (from SQL Notebook Studio): {{variables}}, safety confirms, read-only connections, query timeout ----------
     Hooked into the connection workspace's own SQL executor, so it applies however a cell is run (our buttons, keys,
     Workbench's own toolbar). runSQLCode = once per run (prompts, checks, timer); executeQuery = per statement (text swap). */
  const SET_DEF = { timeout: 0, confirm: 'production', exportMax: 500, upperKw: true, kwCase: 'upper' };
- const settings = () => { try { return { ...SET_DEF, ...JSON.parse(store.get('kgpSettings', '{}')) }; } catch (e) { return { ...SET_DEF }; } };
- const saveSettings = s => store.set('kgpSettings', JSON.stringify(s));
+ const settings = () => { try { return { ...SET_DEF, ...JSON.parse(store.get('kgptalkieSettings', '{}')) }; } catch (e) { return { ...SET_DEF }; } };
+ const saveSettings = s => store.set('kgptalkieSettings', JSON.stringify(s));
  const connName = ws => { const c = ws && ws.props && ws.props.connection; return (c && c.details && c.details.caption) || 'this connection'; };
- const connTag = ws => { try { return { env: 'none', readOnly: false, ...JSON.parse(store.get('kgpConn:' + connName(ws), '{}')) }; } catch (e) { return { env: 'none', readOnly: false }; } };
- const setConnTag = (ws, t) => store.set('kgpConn:' + connName(ws), JSON.stringify(t));
+ const connTag = ws => { try { return { env: 'none', readOnly: false, ...JSON.parse(store.get('kgptalkieConn:' + connName(ws), '{}')) }; } catch (e) { return { env: 'none', readOnly: false }; } };
+ const setConnTag = (ws, t) => store.set('kgptalkieConn:' + connName(ws), JSON.stringify(t));
  const nbKey = ws => { const ae = ws.findActiveEditor && ws.findActiveEditor(); return connName(ws) + '|' + ((ae && ae.document && ae.document.caption) || ''); };
  const VARRE = /\{\{\s*([A-Za-z_][\w.]*)\s*\}\}/g;
  const findVars = s => [...new Set([...String(s).matchAll(VARRE)].map(m => m[1]))];
  const substVars = (s, v) => String(s).replace(VARRE, (w, n) => (n in v ? v[n] : w));
- const SESSION = W.kgpVarSession || (W.kgpVarSession = {});          // per notebook, kept across plugin reloads, gone when Workbench closes
- const savedVars = k => { try { return JSON.parse(store.get('kgpVars:' + k, '{}')); } catch (e) { return {}; } };
- const envVar = async n => { try { const r = await fetch(FSURL + 'env?name=' + encodeURIComponent(n), { headers: { 'X-KGP': '1' }, cache: 'no-store' }); return r.ok ? ((await r.json()).value || '') : ''; } catch (e) { return ''; } };
+ const SESSION = W.kgptalkieVarSession || (W.kgptalkieVarSession = {});          // per notebook, kept across plugin reloads, gone when Workbench closes
+ const savedVars = k => { try { return JSON.parse(store.get('kgptalkieVars:' + k, '{}')); } catch (e) { return {}; } };
+ const envVar = async n => { try { const r = await fetch(FSURL + 'env?name=' + encodeURIComponent(n), { headers: { 'X-KGPTalkie': '1' }, cache: 'no-store' }); return r.ok ? ((await r.json()).value || '') : ''; } catch (e) { return ''; } };
  const inputDlg = (title, hint) => new Promise(res => {
-  const bk = dlg(title, `<label><input data-f="v" spellcheck="false"></label><div class="kgpDlgHint">${esc(hint)}</div><div class="kgpDlgB"><button class="pri" data-b="ok">OK</button><button data-b="cancel">Cancel</button></div>`);
+  const bk = dlg(title, `<label><input data-f="v" spellcheck="false"></label><div class="kgptalkieDlgHint">${esc(hint)}</div><div class="kgptalkieDlgB"><button class="pri" data-b="ok">OK</button><button data-b="cancel">Cancel</button></div>`);
   const inp = bk.querySelector('input'), done = v => { bk.remove(); res(v); };
   bk.addEventListener('mousedown', e => { const b = e.target.closest('button[data-b]'); if (b) { e.preventDefault(); done(b.dataset.b === 'ok' ? inp.value : null); } else if (e.target === bk) done(null); });
   inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); done(inp.value); } else if (e.key === 'Escape') done(null); });
@@ -1149,7 +1149,7 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
   return { write, risk };
  };
  const runNote = async (e, msg, keep) => {
-  try { if (!keep) await e.clearResult(); await e.addResultData({ type: 'text', text: [{ type: 0, index: 0, content: (keep ? '\n' : '') + msg, language: 'ansi' }], executionInfo: { text: '' } }, { resultId: '' }); } catch (er) { W.kgpErr = String(er && er.stack || er); }
+  try { if (!keep) await e.clearResult(); await e.addResultData({ type: 'text', text: [{ type: 0, index: 0, content: (keep ? '\n' : '') + msg, language: 'ansi' }], executionInfo: { text: '' } }, { resultId: '' }); } catch (er) { W.kgptalkieErr = String(er && er.stack || er); }
  };
  const stmtTexts = async (e, t) => {
   if (t.sourceText) return [t.sourceText];
@@ -1158,20 +1158,20 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
  };
  const workspaces = () => { const out = []; const walk = (v, d) => { if (!v || d > 90) return; const c = v.__c; if (c && typeof c.runSQLCode === 'function' && c.sqlQueryExecutor) out.push(c); for (const k of v.__k || []) walk(k, d + 1); }; const r = document.getElementById('root'); if (r) walk(r.__k, 0); return out; };
  const hookWs = ws => {
-  const q = ws.sqlQueryExecutor; if (!q || q.kgpHook === AC) return;
-  const run0 = q.kgpRun0 || q.runSQLCode, exec0 = q.kgpExec0 || q.executeQuery;
-  q.kgpRun0 = run0; q.kgpExec0 = exec0; q.kgpHook = AC;
-  q.executeQuery = (e, idx, page, limit, opts, text, ...rest) => exec0(e, idx, page, limit, opts, e && e.kgpVals ? substVars(text, e.kgpVals) : text, ...rest);
-  /* W.kgpSqlRunning counts runs still going, so Run All waits for a multi-statement cell to finish all of it
+  const q = ws.sqlQueryExecutor; if (!q || q.kgptalkieHook === AC) return;
+  const run0 = q.kgptalkieRun0 || q.runSQLCode, exec0 = q.kgptalkieExec0 || q.executeQuery;
+  q.kgptalkieRun0 = run0; q.kgptalkieExec0 = exec0; q.kgptalkieHook = AC;
+  q.executeQuery = (e, idx, page, limit, opts, text, ...rest) => exec0(e, idx, page, limit, opts, e && e.kgptalkieVals ? substVars(text, e.kgptalkieVals) : text, ...rest);
+  /* W.kgptalkieSqlRunning counts runs still going, so Run All waits for a multi-statement cell to finish all of it
      (its first result shows up long before the last statement is done) */
-  q.runSQLCode = async (...args) => { W.kgpSqlRunning = (W.kgpSqlRunning || 0) + 1; try { return await runOne(...args); } finally { W.kgpSqlRunning = Math.max(0, W.kgpSqlRunning - 1); } };
+  q.runSQLCode = async (...args) => { W.kgptalkieSqlRunning = (W.kgptalkieSqlRunning || 0) + 1; try { return await runOne(...args); } finally { W.kgptalkieSqlRunning = Math.max(0, W.kgptalkieSqlRunning - 1); } };
   const runOne = async (e, t, ...rest) => {
    try {
     let texts = await stmtTexts(e, t || {}); const names = findVars(texts.join('\n'));
-    delete e.kgpVals;
+    delete e.kgptalkieVals;
     if (names.length) {
      const vals = await varsFor(ws, names); if (!vals) { await runNote(e, 'Cancelled: a variable has no value.'); return; }
-     e.kgpVals = vals; texts = texts.map(s => substVars(s, vals));
+     e.kgptalkieVals = vals; texts = texts.map(s => substVars(s, vals));
     }
     const tag = connTag(ws), mode = settings().confirm, risks = [];
     for (const s of texts) {
@@ -1183,35 +1183,35 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
      const go = await askDlg(`Run ${[...new Set(risks)].join(', ')} on "${connName(ws)}"?`, tag.env === 'production' ? 'This connection is tagged Production.' : 'This statement cannot be undone.', ['Run', 'Cancel']);
      if (go !== 'Run') { await runNote(e, 'Not run.'); return; }
     }
-   } catch (er) { W.kgpErr = String(er && er.stack || er); }
+   } catch (er) { W.kgptalkieErr = String(er && er.stack || er); }
    const sec = +settings().timeout || 0; let timer = 0, timedOut = false;
    if (sec > 0) timer = setTimeout(() => { timedOut = true; try { ws.props.connection.backend.killQuery(); } catch (er) { } }, sec * 1000);
    try { return await run0(e, t, ...rest); }
    finally { clearTimeout(timer); if (timedOut) await runNote(e, `Stopped after ${sec} s (query timeout, Notebook Settings).`, true); }
   };
  };
- const unhookWs = () => workspaces().forEach(ws => { const q = ws.sqlQueryExecutor; if (q && q.kgpRun0) { q.runSQLCode = q.kgpRun0; q.executeQuery = q.kgpExec0; delete q.kgpRun0; delete q.kgpExec0; delete q.kgpHook; } });
+ const unhookWs = () => workspaces().forEach(ws => { const q = ws.sqlQueryExecutor; if (q && q.kgptalkieRun0) { q.runSQLCode = q.kgptalkieRun0; q.executeQuery = q.kgptalkieExec0; delete q.kgptalkieRun0; delete q.kgptalkieExec0; delete q.kgptalkieHook; } });
  let hookAt = 0;
  const hookAll = () => { const now = Date.now(); if (now - hookAt < 1000) return; hookAt = now; workspaces().forEach(ws => { hookWs(ws); }); tagChips(); treeMenus().forEach(hookTreeMenu); hookCompletion(); };
  const wsOfEd = ed => { const all = workspaces(), dom = ed.getDomNode(); return all.find(w => w.base && w.base.contains && w.base.contains(dom)) || all[0] || null; };
  /* the connection tag on the notebook toolbar (Production in red, Read-only) */
  const tagChips = () => {
-  document.querySelectorAll('.kgpNbBar').forEach(bar => {
+  document.querySelectorAll('.kgptalkieNbBar').forEach(bar => {
    const host = bar.parentElement && bar.parentElement.querySelector(':scope > .editorHost'), edDom = host && host.querySelector('.monaco-editor');
-   const ws = edDom ? (workspaces().find(w => w.base && w.base.contains && w.base.contains(edDom)) || null) : null; const chip = bar.querySelector('.kgpTag'); if (!chip) return;
+   const ws = edDom ? (workspaces().find(w => w.base && w.base.contains && w.base.contains(edDom)) || null) : null; const chip = bar.querySelector('.kgptalkieTag'); if (!chip) return;
    const t = ws ? connTag(ws) : { env: 'none', readOnly: false }, parts = [];
    if (t.env && t.env !== 'none') parts.push(t.env[0].toUpperCase() + t.env.slice(1)); if (t.readOnly) parts.push('Read-only');
-   const txt = parts.join(' · '); if (chip.textContent !== txt) { chip.textContent = txt; chip.className = 'kgpTag' + (t.env === 'production' ? ' prod' : '') + (txt ? '' : ' none'); }
+   const txt = parts.join(' · '); if (chip.textContent !== txt) { chip.textContent = txt; chip.className = 'kgptalkieTag' + (t.env === 'production' ? ' prod' : '') + (txt ? '' : ' none'); }
    /* "Connection · MySQL 9.5.0": which server this notebook talks to */
-   const db = bar.querySelector('.kgpDb'); if (!db) return;
+   const db = bar.querySelector('.kgptalkieDb'); if (!db) return;
    const ed = edDom && list.find(x => x.getDomNode() === edDom), ver = ws && ed ? serverVer(ws, ed) : '';
    const dtxt = ws ? connName(ws) + (ver ? ' · ' + ver : '') : ''; if (db.textContent !== dtxt) { db.textContent = dtxt; db.title = dtxt; }
   });
  };
  /* the server's version, asked once per connection (SELECT VERSION()); '' until it answers, retried after 15 s */
  const serverVer = (ws, ed) => {
-  const v = ws.kgpVer; if (v && (v.text || Date.now() - v.at < 15000)) return v.text || '';
-  const st = ws.kgpVer = { at: Date.now(), text: '' };
+  const v = ws.kgptalkieVer; if (v && (v.text || Date.now() - v.at < 15000)) return v.text || '';
+  const st = ws.kgptalkieVer = { at: Date.now(), text: '' };
   sqlRun(ed, 'SELECT VERSION()').then(r => { const s = String((r.rows[0] || [])[0] || ''); if (!s) return;
    st.text = (/mariadb/i.test(s) ? 'MariaDB ' : 'MySQL ') + s.split('-')[0]; hookAt = 0; }).catch(() => { });
   return '';
@@ -1222,13 +1222,13 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
   const used = findVars(ctxs(ed).filter(x => !isMd(x)).map(x => textOf(m, x)).join('\n')).filter(n => !n.startsWith('env.'));
   const saved = savedVars(k), ses = SESSION[k] || (SESSION[k] = {});
   const names = [...new Set([...used, ...Object.keys(saved), ...Object.keys(ses)])].sort();
-  const row = n => `<div class="kgpVarRow" data-n="${esc(n)}"><code>{{${esc(n)}}}</code><input data-v value="${esc(n in saved ? saved[n] : (ses[n] || ''))}" spellcheck="false" placeholder="${n in ses || n in saved ? '' : 'not set'}"><span class="kgpVarSrc">${n in saved ? 'saved' : n in ses ? 'this session' : used.includes(n) ? 'used, no value' : ''}</span></div>`;
-  const bk = dlg('Variables', `<div class="kgpDlgHint">Write <code>{{name}}</code> in SQL and it is swapped for the value before the query runs (plain text, so quote strings yourself: <code>'{{country}}'</code>). <code>{{env.NAME}}</code> reads an environment variable. Values saved here stay with this notebook on this PC; an empty value removes it.</div>
-   <div class="kgpVarList">${names.map(row).join('') || '<div class="kgpDlgHint">No variables yet.</div>'}</div>
-   <div class="kgpDlgRow kgpVarAdd"><input data-f="nn" placeholder="new name" spellcheck="false"><button data-f="add">Add</button></div>
-   <div class="kgpDlgStatus" data-f="status"></div>
-   <div class="kgpDlgB"><button class="pri" data-f="save">Save</button><button data-f="close">Close</button></div>`);
-  const st = (t, c) => { const s = bk.querySelector('[data-f="status"]'); s.textContent = t; s.className = 'kgpDlgStatus ' + (c || ''); };
+  const row = n => `<div class="kgptalkieVarRow" data-n="${esc(n)}"><code>{{${esc(n)}}}</code><input data-v value="${esc(n in saved ? saved[n] : (ses[n] || ''))}" spellcheck="false" placeholder="${n in ses || n in saved ? '' : 'not set'}"><span class="kgptalkieVarSrc">${n in saved ? 'saved' : n in ses ? 'this session' : used.includes(n) ? 'used, no value' : ''}</span></div>`;
+  const bk = dlg('Variables', `<div class="kgptalkieDlgHint">Write <code>{{name}}</code> in SQL and it is swapped for the value before the query runs (plain text, so quote strings yourself: <code>'{{country}}'</code>). <code>{{env.NAME}}</code> reads an environment variable. Values saved here stay with this notebook on this PC; an empty value removes it.</div>
+   <div class="kgptalkieVarList">${names.map(row).join('') || '<div class="kgptalkieDlgHint">No variables yet.</div>'}</div>
+   <div class="kgptalkieDlgRow kgptalkieVarAdd"><input data-f="nn" placeholder="new name" spellcheck="false"><button data-f="add">Add</button></div>
+   <div class="kgptalkieDlgStatus" data-f="status"></div>
+   <div class="kgptalkieDlgB"><button class="pri" data-f="save">Save</button><button data-f="close">Close</button></div>`);
+  const st = (t, c) => { const s = bk.querySelector('[data-f="status"]'); s.textContent = t; s.className = 'kgptalkieDlgStatus ' + (c || ''); };
   bk.addEventListener('keydown', e => e.stopPropagation());
   bk.addEventListener('mousedown', e => {
    if (e.target === bk) { bk.remove(); return; }
@@ -1236,12 +1236,12 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
    if (f === 'close') bk.remove();
    else if (f === 'add') { const ni = bk.querySelector('[data-f="nn"]'), n = ni.value.trim();
     if (!/^[A-Za-z_][\w.]*$/.test(n)) { st('Names start with a letter or _ and use letters, digits, _ and dots.', 'bad'); return; }
-    if (bk.querySelector(`.kgpVarRow[data-n="${CSS.escape(n)}"]`)) { st('{{' + n + '}} is already in the list.', 'bad'); return; }
-    const list = bk.querySelector('.kgpVarList'); const h = list.querySelector(':scope > .kgpDlgHint'); if (h) h.remove();
+    if (bk.querySelector(`.kgptalkieVarRow[data-n="${CSS.escape(n)}"]`)) { st('{{' + n + '}} is already in the list.', 'bad'); return; }
+    const list = bk.querySelector('.kgptalkieVarList'); const h = list.querySelector(':scope > .kgptalkieDlgHint'); if (h) h.remove();
     list.insertAdjacentHTML('beforeend', row(n)); ni.value = ''; list.lastElementChild.querySelector('input').focus(); st(''); }
    else if (f === 'save') { const out = {};
-    bk.querySelectorAll('.kgpVarRow').forEach(r => { const n = r.dataset.n, v = r.querySelector('input').value; if (v !== '') out[n] = v; else delete ses[n]; });
-    store.set('kgpVars:' + k, JSON.stringify(out)); bk.remove(); nbToast('✓ Saved ' + Object.keys(out).length + (Object.keys(out).length === 1 ? ' variable' : ' variables')); }
+    bk.querySelectorAll('.kgptalkieVarRow').forEach(r => { const n = r.dataset.n, v = r.querySelector('input').value; if (v !== '') out[n] = v; else delete ses[n]; });
+    store.set('kgptalkieVars:' + k, JSON.stringify(out)); bk.remove(); nbToast('✓ Saved ' + Object.keys(out).length + (Object.keys(out).length === 1 ? ' variable' : ' variables')); }
   });
  };
  /* Notebook settings: timeout, destructive confirms, this connection's tag, export rows */
@@ -1251,15 +1251,15 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
   const bk = dlg('Notebook Settings', `
    <label>Stop a query after (seconds, 0 = no limit)<input data-f="timeout" type="number" min="0" step="1" value="${+s.timeout || 0}"></label>
    <label>Ask before DROP, TRUNCATE, or DELETE / UPDATE without WHERE<select data-f="confirm">${opt('production', 'On connections tagged Production', s.confirm)}${opt('always', 'On every connection', s.confirm)}${opt('never', 'Never ask', s.confirm)}</select></label>
-   <div class="kgpDlgSub">This connection: ${esc(connName(ws))}</div>
+   <div class="kgptalkieDlgSub">This connection: ${esc(connName(ws))}</div>
    <label>Tag<select data-f="env">${opt('none', 'None', tag.env)}${opt('development', 'Development', tag.env)}${opt('staging', 'Staging', tag.env)}${opt('production', 'Production', tag.env)}</select></label>
    <label class="chk"><input type="checkbox" data-f="readOnly"${tag.readOnly ? ' checked' : ''}> Read-only: refuse statements that change data</label>
    <label>Rows per result in exported notebooks<input data-f="exportMax" type="number" min="1" step="1" value="${+s.exportMax || 500}"></label>
-   <div class="kgpDlgSub">Typing SQL</div>
+   <div class="kgptalkieDlgSub">Typing SQL</div>
    <label class="chk"><input type="checkbox" data-f="upperKw"${s.upperKw !== false ? ' checked' : ''}> Turn MySQL keywords into capitals as you type (names, strings and comments stay as typed; Ctrl+Z puts a word back)</label>
    <label>Keywords picked from autocomplete<select data-f="kwCase">${opt('upper', 'UPPERCASE', s.kwCase)}${opt('lower', 'lowercase', s.kwCase)}${opt('auto', 'As typed (lowercase when you type lowercase)', s.kwCase)}</select></label>
-   <div class="kgpDlgHint">Rows per result page is Workbench's own setting: Preferences, SQL Editor, Result Set Page Size.</div>
-   <div class="kgpDlgB"><button class="pri" data-f="save">Save</button><button data-f="close">Close</button></div>`);
+   <div class="kgptalkieDlgHint">Rows per result page is Workbench's own setting: Preferences, SQL Editor, Result Set Page Size.</div>
+   <div class="kgptalkieDlgB"><button class="pri" data-f="save">Save</button><button data-f="close">Close</button></div>`);
   const q = f => bk.querySelector(`[data-f="${f}"]`);
   bk.addEventListener('keydown', e => e.stopPropagation());
   bk.addEventListener('mousedown', e => {
@@ -1271,7 +1271,7 @@ body.kgpActOn #documentSideBar .accordionContent > .sashContainer{display:none !
    hookAt = 0; bk.remove(); nbToast('✓ Settings saved');
   });
  };
- W.kgpRunApi = { classify, stripSqlComments, findVars, substVars, settings, workspaces, varsDialog, settingsDialog };
+ W.kgptalkieRunApi = { classify, stripSqlComments, findVars, substVars, settings, workspaces, varsDialog, settingsDialog };
 
  /* ---------- notebook export / import (from SQL Notebook Studio): HTML, PDF, Markdown, .sqlnb, plain .sql ---------- */
  const nbName = ed => { const tab = document.querySelector('.dbModuleTabview .tabArea .tabItem.selected'); return ((tab && tab.textContent) || '').trim().replace(/\.(mysql-notebook|sql|sqlnb)$/i, '') || 'notebook'; };
@@ -1352,7 +1352,7 @@ footer{margin-top:40px;font-size:12px;color:var(--mut);border-top:1px solid var(
    return h + '</section>';
   }).join('\n');
   const when = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
-  return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(doc.name)}</title><style>${EXPORT_CSS}</style></head>\n<body><main><h1 class="nb">${esc(doc.name)}</h1>\n${out}\n<footer>Exported from MySQL Workbench (KGP notebook) · ${esc(when)}</footer></main></body></html>\n`;
+  return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(doc.name)}</title><style>${EXPORT_CSS}</style></head>\n<body><main><h1 class="nb">${esc(doc.name)}</h1>\n${out}\n<footer>Exported from Modern MySQL Workbench · ${esc(when)}</footer></main></body></html>\n`;
  };
  const toMarkdown = doc => {
   const out = ['# ' + doc.name, ''];
@@ -1432,7 +1432,7 @@ footer{margin-top:40px;font-size:12px;color:var(--mut);border-top:1px solid var(
  const importCells = async (ed, nb) => {
   const m = ed.getModel(); if (!nb.cells.length) { nbToast('Nothing to import'); return; }
   const ws = wsOfEd(ed);
-  if (ws && nb.meta && nb.meta.variables && typeof nb.meta.variables === 'object') { const k = nbKey(ws); store.set('kgpVars:' + k, JSON.stringify({ ...nb.meta.variables, ...savedVars(k) })); }
+  if (ws && nb.meta && nb.meta.variables && typeof nb.meta.variables === 'object') { const k = nbKey(ws); store.set('kgptalkieVars:' + k, JSON.stringify({ ...nb.meta.variables, ...savedVars(k) })); }
   for (const c of nb.cells) if (c.kind === 'sql' && c.meta && c.meta.view === 'chart' && c.meta.chart) { const v = JSON.stringify({ view: 'chart', cfg: c.meta.chart }); const s = c.text.trim(); [s, s.replace(/;\s*$/, '')].forEach(q => store.set(chartKey(q), v)); }
   await act(ed, 'Import Cells', async () => {
    let all = ctxs(ed), at = all.length; const last = all[all.length - 1];
@@ -1446,9 +1446,9 @@ footer{margin-top:40px;font-size:12px;color:var(--mut);border-top:1px solid var(
   dirty(ed); nbToast('✓ Imported ' + nb.cells.length + (nb.cells.length === 1 ? ' cell' : ' cells'));
  };
  const pickImport = ed => {
-  hookHost(); W.kgpPick = W.kgpPick || {};
-  W.kgpPick.kgpImport = f => { try { const text = typeof f.content === 'string' ? f.content : new TextDecoder().decode(f.content); importCells(ed, cellsFromSql(text)); } catch (e) { W.kgpErr = String(e && e.stack || e); nbToast('Could not read that file'); } };
-  if (W.electronHost && W.kgpHostHooked === 2) W.electronHost.postMessage({ source: 'app', command: 'showOpenDialogWithRead', data: { id: 'kgpImport', title: 'Import into Notebook', openLabel: 'Import', canSelectFiles: true, canSelectMany: false, filters: { 'SQL or SQL Notebook': ['sql', 'sqlnb'] } } });
+  hookHost(); W.kgptalkiePick = W.kgptalkiePick || {};
+  W.kgptalkiePick.kgptalkieImport = f => { try { const text = typeof f.content === 'string' ? f.content : new TextDecoder().decode(f.content); importCells(ed, cellsFromSql(text)); } catch (e) { W.kgptalkieErr = String(e && e.stack || e); nbToast('Could not read that file'); } };
+  if (W.electronHost && W.kgptalkieHostHooked === 2) W.electronHost.postMessage({ source: 'app', command: 'showOpenDialogWithRead', data: { id: 'kgptalkieImport', title: 'Import into Notebook', openLabel: 'Import', canSelectFiles: true, canSelectMany: false, filters: { 'SQL or SQL Notebook': ['sql', 'sqlnb'] } } });
   else nbToast('The file dialog needs the Workbench window.');
  };
  const exportAs = async (ed, kind) => {
@@ -1461,7 +1461,7 @@ footer{margin-top:40px;font-size:12px;color:var(--mut);border-top:1px solid var(
   if (kind === 'pdf') {
    nbToast('Making the PDF...');
    try {
-    const r = await fetch('http://127.0.0.1:9241/kgp/doc/pdf', { method: 'POST', headers: { 'X-KGP': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ html: toHtml(doc) }) });
+    const r = await fetch('http://127.0.0.1:9241/kgptalkie/doc/pdf', { method: 'POST', headers: { 'X-KGPTalkie': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ html: toHtml(doc) }) });
     const j = await r.json(); if (!r.ok) throw new Error(j.error || 'HTTP ' + r.status);
     saveAs(safe + '.pdf', j.pdf, { PDF: ['pdf'] }, 'base64');
    } catch (e) { nbToast('PDF export failed: ' + e.message); }
@@ -1475,35 +1475,35 @@ footer{margin-top:40px;font-size:12px;color:var(--mut);border-top:1px solid var(
     Copy to Clipboard > Name and Send to SQL Editor). Workbench shows these menus as native Electron menus, so our two items
     are added where the menu serializes its items and picked up where the native selection comes back. ---------- */
  const qid = s => '`' + String(s).replace(/`/g, '``') + '`';
- const TREE_ITEMS = [{ title: 'Select Top 100 in Notebook', command: 'kgp.top100' }, { title: 'Describe in Notebook', command: 'kgp.describe' }];
+ const TREE_ITEMS = [{ title: 'Select Top 100 in Notebook', command: 'kgptalkie.top100' }, { title: 'Describe in Notebook', command: 'kgptalkie.describe' }];
  const activeNb = () => list.filter(ed => isNB(ed)).find(ed => ed.getDomNode().offsetWidth) || list.find(ed => isNB(ed)) || null;
  /* the last cell when it is an empty SQL cell, else a new cell at the end; then run it */
  const runInNotebook = async text => {
   const ed = activeNb(); if (!ed) { nbToast('Open a notebook first'); return false; }
   const m = ed.getModel(); let all = ctxs(ed), i = all.length - 1; const last = all[i];
   if (!last || isMd(last) || textOf(m, last).trim()) { await A.insertAt(ed, all.length, 'mysql'); all = ctxs(ed); i = all.length - 1; }
-  const x = all[i]; ed.executeEdits('kgp', [{ range: { startLineNumber: x.startLine, startColumn: 1, endLineNumber: x.endLine, endColumn: m.getLineMaxColumn(x.endLine) }, text }]);
+  const x = all[i]; ed.executeEdits('kgptalkie', [{ range: { startLineNumber: x.startLine, startColumn: 1, endLineNumber: x.endLine, endColumn: m.getLineMaxColumn(x.endLine) }, text }]);
   A.run(ed, i); return true;
  };
  const treeAction = (cmd, payload) => {
   const de = payload && (payload.dataModelEntry || payload); if (!de || !de.caption) return;
   let s = de.parent; while (s && s.type !== 2) s = s.parent;                       // table -> "Tables" group -> schema
   const id = (s && s.caption ? qid(s.caption) + '.' : '') + qid(de.caption);
-  runInNotebook(cmd === 'kgp.describe' ? `DESCRIBE ${id};` : `SELECT *\nFROM ${id}\nLIMIT 100;`);
+  runInNotebook(cmd === 'kgptalkie.describe' ? `DESCRIBE ${id};` : `SELECT *\nFROM ${id}\nLIMIT 100;`);
  };
  const hookTreeMenu = menu => {
-  if (!menu || menu.kgpMenuHook === AC || typeof menu.serializeNativeMenuItems !== 'function') return;
+  if (!menu || menu.kgptalkieMenuHook === AC || typeof menu.serializeNativeMenuItems !== 'function') return;
   const MI = ([].concat(menu.props.children).flat(9).find(k => k && k.type && k.props && k.props.command) || {}).type; if (!MI) return;
-  const ser0 = menu.kgpSer0 || menu.serializeNativeMenuItems, sel0 = menu.kgpSel0 || menu.handleNativeMenuSelection;
-  menu.kgpSer0 = ser0; menu.kgpSel0 = sel0; menu.kgpMenuHook = AC;
+  const ser0 = menu.kgptalkieSer0 || menu.serializeNativeMenuItems, sel0 = menu.kgptalkieSel0 || menu.handleNativeMenuSelection;
+  menu.kgptalkieSer0 = ser0; menu.kgptalkieSel0 = sel0; menu.kgptalkieMenuHook = AC;
   menu.serializeNativeMenuItems = (kids, payload, map, path = 'root') => path !== 'root' ? ser0(kids, payload, map, path)
-   : ser0([...TREE_ITEMS.map(c => ({ type: MI, props: { command: c }, key: c.command })), { type: MI, props: { command: { title: '-', command: '' }, disabled: true }, key: 'kgpSep' }, ...[].concat(kids)], payload, map, path);
-  menu.handleNativeMenuSelection = (props, payload) => (props && props.command && /^kgp\./.test(props.command.command || '')) ? treeAction(props.command.command, payload) : sel0(props, payload);
+   : ser0([...TREE_ITEMS.map(c => ({ type: MI, props: { command: c }, key: c.command })), { type: MI, props: { command: { title: '-', command: '' }, disabled: true }, key: 'kgptalkieSep' }, ...[].concat(kids)], payload, map, path);
+  menu.handleNativeMenuSelection = (props, payload) => (props && props.command && /^kgptalkie\./.test(props.command.command || '')) ? treeAction(props.command.command, payload) : sel0(props, payload);
  };
  const treeMenus = () => { let sb = null; const walk = (v, d) => { if (!v || d > 90 || sb) return; const c = v.__c; if (c && c.cdmTypeToMenuRefMap) sb = c; for (const k of v.__k || []) walk(k, d + 1); }; const r = document.getElementById('root'); if (r) walk(r.__k, 0);
   return sb ? [...sb.cdmTypeToMenuRefMap.values()].map(r2 => r2 && r2.current).filter(mn => mn && mn.props && /^(table|view)ContextMenu$/.test(mn.props.id)) : []; };
- const unhookTreeMenus = () => treeMenus().forEach(mn => { if (mn.kgpSer0) { mn.serializeNativeMenuItems = mn.kgpSer0; mn.handleNativeMenuSelection = mn.kgpSel0; delete mn.kgpSer0; delete mn.kgpSel0; delete mn.kgpMenuHook; } });
- W.kgpTreeApi = { treeMenus, treeAction, runInNotebook };
+ const unhookTreeMenus = () => treeMenus().forEach(mn => { if (mn.kgptalkieSer0) { mn.serializeNativeMenuItems = mn.kgptalkieSer0; mn.handleNativeMenuSelection = mn.kgptalkieSel0; delete mn.kgptalkieSer0; delete mn.kgptalkieSel0; delete mn.kgptalkieMenuHook; } });
+ W.kgptalkieTreeApi = { treeMenus, treeAction, runInNotebook };
 
  /* ---------- completion: columns after an alias or table name (`FROM customers c` ... `c.`).
     Workbench's own completion already matches in any case and fuzzy (slt -> SELECT, cstm -> customers, CIT -> city),
@@ -1559,8 +1559,8 @@ footer{margin-top:40px;font-size:12px;color:var(--mut);border-top:1px solid var(
   return null;
  };
  const hookCompletion = () => {
-  const p = compProvider(); if (!p || p.kgpComp === AC) return;
-  const base = Object.getPrototypeOf(p).provideCompletionItems; p.kgpComp = AC;
+  const p = compProvider(); if (!p || p.kgptalkieComp === AC) return;
+  const base = Object.getPrototypeOf(p).provideCompletionItems; p.kgptalkieComp = AC;
   p.provideCompletionItems = (model, pos, ...rest) => {
    const r0 = base.call(p, model, pos, ...rest);
    let ref = null; try { ref = qualAt(model, pos); } catch (er) { }
@@ -1592,8 +1592,8 @@ footer{margin-top:40px;font-size:12px;color:var(--mut);border-top:1px solid var(
    return { ...x, label: typeof x.label === 'string' ? nl : { ...x.label, label: nl }, insertText: it };
   });
  };
- const unhookCompletion = () => { const p = compProvider(); if (p && p.kgpComp) { delete p.provideCompletionItems; delete p.kgpComp; } };
- W.kgpCompApi = { qualAt, colsFor, hookCompletion, kwCase };
+ const unhookCompletion = () => { const p = compProvider(); if (p && p.kgptalkieComp) { delete p.provideCompletionItems; delete p.kgptalkieComp; } };
+ W.kgptalkieCompApi = { qualAt, colsFor, hookCompletion, kwCase };
 
  /* ---------- MySQL keywords in capitals as you type (from SQL Notebook Studio) ----------
     When a word is finished in a SQL cell (space, tab, comma, ;, a bracket or Enter) and it is a MySQL keyword, it
@@ -1680,7 +1680,7 @@ footer{margin-top:40px;font-size:12px;color:var(--mut);border-top:1px solid var(
  const autoCase = async (ed, e) => {
   if (settings().upperKw === false || e.isUndoing || e.isRedoing || e.isFlush || e.changes.length !== 1) return;
   /* only what the user types: a key went down just now (AI streaming and cell actions also edit the text) */
-  const ch = e.changes[0]; if (ch.rangeLength !== 0 || !ENDS_WORD.test(ch.text) || performance.now() - (ed.kgpKeyAt || 0) > 200 || ed.getSelections().length !== 1) return;
+  const ch = e.changes[0]; if (ch.rangeLength !== 0 || !ENDS_WORD.test(ch.text) || performance.now() - (ed.kgptalkieKeyAt || 0) > 200 || ed.getSelections().length !== 1) return;
   const m = ed.getModel(), ln = ch.range.startLineNumber, i = cellAt(ed, ln), x = ctxs(ed)[i];
   if (!x || !/^(mysql|sql)$/.test(x.language || '')) return;
   const text = textOf(m, x), base = m.getOffsetAt({ lineNumber: x.startLine, column: 1 }), offset = m.getOffsetAt({ lineNumber: ln, column: ch.range.startColumn }) - base;
@@ -1692,12 +1692,12 @@ footer{margin-top:40px;font-size:12px;color:var(--mut);border-top:1px solid var(
   const p0 = m.getPositionAt(base + hit.start), p1 = m.getPositionAt(base + hit.end);
   const range = { startLineNumber: p0.lineNumber, startColumn: p0.column, endLineNumber: p1.lineNumber, endColumn: p1.column };
   if (m.getValueInRange(range) !== hit.word) return;                          // the user kept typing over it
-  ed.pushUndoStop(); ed.executeEdits('kgp-case', [{ range, text: hit.upper }]); ed.pushUndoStop();
+  ed.pushUndoStop(); ed.executeEdits('kgptalkie-case', [{ range, text: hit.upper }]); ed.pushUndoStop();
  };
- const hookCase = ed => { if (ed.kgpCaseAC === AC) return; ed.kgpCaseAC = AC;
-  ed.getDomNode().addEventListener('keydown', ev => { if (!ev.ctrlKey && !ev.altKey && !ev.metaKey) ed.kgpKeyAt = performance.now(); }, { capture: true, signal: AC.signal });
-  DISP.push(ed.onDidChangeModelContent(e => { autoCase(ed, e).catch(er => { W.kgpErr = String(er && er.stack || er); }); })); };
- W.kgpCaseApi = { wordToCap, caseCtx, cellNames, WORDS };
+ const hookCase = ed => { if (ed.kgptalkieCaseAC === AC) return; ed.kgptalkieCaseAC = AC;
+  ed.getDomNode().addEventListener('keydown', ev => { if (!ev.ctrlKey && !ev.altKey && !ev.metaKey) ed.kgptalkieKeyAt = performance.now(); }, { capture: true, signal: AC.signal });
+  DISP.push(ed.onDidChangeModelContent(e => { autoCase(ed, e).catch(er => { W.kgptalkieErr = String(er && er.stack || er); }); })); };
+ W.kgptalkieCaseApi = { wordToCap, caseCtx, cellNames, WORDS };
 
  /* ---------- sample notebook + Get Started (the extension's Sample Shop, rebuilt for MySQL) ----------
     The first SQL cell creates sample_shop on the current connection with fixed generated data (same every run, safe to run again). */
@@ -1766,27 +1766,27 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
  };
  const addSample = ed => importCells(ed, SAMPLE);
  const startDialog = ed => {
-  const bk = dlg('Get Started', `<ol class="kgpSteps">
+  const bk = dlg('Get Started', `<ol class="kgptalkieSteps">
     <li><b>Add the sample notebook.</b> It builds <code>sample_shop</code> (customers, products, orders) on this connection. Start a new notebook first if this one is in use.</li>
     <li><b>Run a cell</b> with Ctrl+Enter, or Run All. Shift+Enter runs and moves on.</li>
     <li><b>Sort, filter, chart.</b> Click a header to sort, the funnel filters each column (<code>&gt;500</code>, <code>1..5</code>, <code>!text</code>, <code>null</code>), Chart plots the result.</li>
     <li><b>Turn on AI</b> with Configure AI: explain, optimize and fix queries, or write SQL from plain words in an AI cell.</li>
    </ol>
-   <div class="kgpDlgHint">Right-click a table in Schemas for Select Top 100 and Describe in the notebook. Variables, Notebook Settings and Export are in this toolbar.</div>
-   <div class="kgpDlgB"><button class="pri" data-f="sample">Add the sample notebook</button><button data-f="ai">Configure AI</button><button data-f="close">Close</button></div>`);
+   <div class="kgptalkieDlgHint">Right-click a table in Schemas for Select Top 100 and Describe in the notebook. Variables, Notebook Settings and Export are in this toolbar.</div>
+   <div class="kgptalkieDlgB"><button class="pri" data-f="sample">Add the sample notebook</button><button data-f="ai">Configure AI</button><button data-f="close">Close</button></div>`);
   bk.addEventListener('mousedown', e => {
    if (e.target === bk) { bk.remove(); return; }
    const t = e.target.closest('button[data-f]'); if (!t) return; e.preventDefault(); bk.remove();
    if (t.dataset.f === 'sample') addSample(ed); else if (t.dataset.f === 'ai') aiDialog();
   });
  };
- W.kgpDocApi = { nbDoc, toHtml, toMarkdown, toSqlnb, parseSqlnb, splitSql, cellsFromSql, importCells, exportAs, hlSql };
+ W.kgptalkieDocApi = { nbDoc, toHtml, toMarkdown, toSqlnb, parseSqlnb, splitSql, cellsFromSql, importCells, exportAs, hlSql };
  /* pin buttons on result headers (frozen columns, like the extension's pin) */
  const pinButtons = rt => {
   const t = tabOf(rt); if (!t) return;
   t.element.querySelectorAll('.tabulator-col[tabulator-field]').forEach(h => {
-   if (h.querySelector('.kgpPin')) return; const f = h.getAttribute('tabulator-field'); const col = t.getColumn(f); if (!col) return;
-   const p = document.createElement('span'); const on = !!col.getDefinition().frozen; p.className = 'kgpPin codicon codicon-' + (on ? 'pinned' : 'pin') + (on ? ' on' : ''); p.title = on ? 'Unpin column' : 'Pin column';
+   if (h.querySelector('.kgptalkiePin')) return; const f = h.getAttribute('tabulator-field'); const col = t.getColumn(f); if (!col) return;
+   const p = document.createElement('span'); const on = !!col.getDefinition().frozen; p.className = 'kgptalkiePin codicon codicon-' + (on ? 'pinned' : 'pin') + (on ? ' on' : ''); p.title = on ? 'Unpin column' : 'Pin column';
    p.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); const c2 = t.getColumn(f); if (c2) c2.updateDefinition({ frozen: !c2.getDefinition().frozen }); }, { signal: AC.signal });
    p.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); }, { signal: AC.signal });
    const holder = h.querySelector('.tabulator-col-title-holder') || h; holder.appendChild(p);
@@ -1794,15 +1794,15 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
  };
 
  /* ---------- menu ---------- */
- const closeMenu = () => { document.querySelectorAll('.kgpMenu').forEach(x => x.remove()); document.querySelectorAll('.kgpMenuOpen').forEach(x => x.classList.remove('kgpMenuOpen')); };
+ const closeMenu = () => { document.querySelectorAll('.kgptalkieMenu').forEach(x => x.remove()); document.querySelectorAll('.kgptalkieMenuOpen').forEach(x => x.classList.remove('kgptalkieMenuOpen')); };
  const openMenu = (anchor, items) => {
-  closeMenu(); const mn = document.createElement('div'); mn.className = 'kgpMenu';
+  closeMenu(); const mn = document.createElement('div'); mn.className = 'kgptalkieMenu';
   items.forEach(it => { if (it === '-') { const s = document.createElement('div'); s.className = 'sep'; mn.appendChild(s); return; } const d = document.createElement('div'); d.className = 'it' + (it.dis ? ' dis' : ''); d.innerHTML = `<span>${it.t}</span><span class="k">${it.k || ''}</span>`; d.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); closeMenu(); it.f(); }); mn.appendChild(d); });
   document.body.appendChild(mn); const r = anchor.getBoundingClientRect(); const w = mn.offsetWidth, h = mn.offsetHeight;
   mn.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w)) + 'px'; mn.style.top = (r.bottom + h + 6 < innerHeight ? r.bottom + 4 : Math.max(8, r.top - h - 4)) + 'px';
-  const bar = anchor.closest('.kgpCellBar'); if (bar) bar.classList.add('kgpMenuOpen');
+  const bar = anchor.closest('.kgptalkieCellBar'); if (bar) bar.classList.add('kgptalkieMenuOpen');
  };
- document.addEventListener('mousedown', e => { if (!e.target.closest('.kgpMenu')) closeMenu(); }, { capture: true, signal: AC.signal });
+ document.addEventListener('mousedown', e => { if (!e.target.closest('.kgptalkieMenu')) closeMenu(); }, { capture: true, signal: AC.signal });
  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); }, { capture: true, signal: AC.signal });
  const cellMenu = (ed, i) => {
   const m = ed.getModel(), all = ctxs(ed), x = all[i]; if (!x) return [];
@@ -1832,23 +1832,23 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
  const nbBtn = (a, icon, label, title) => `<button data-a="${a}" title="${title}"><span class="codicon codicon-${icon}"></span>${label}</button>`;
  const ensureNbBar = ed => {
   const host = ed.getDomNode().closest('.editorHost'); if (!host || !host.parentElement) return;
-  const par = host.parentElement; let bar = par.querySelector(':scope > .kgpNbBar');
+  const par = host.parentElement; let bar = par.querySelector(':scope > .kgptalkieNbBar');
   if (bar && bar.dataset.v === '12') return;
   if (bar) bar.remove();
-  bar = document.createElement('div'); bar.className = 'kgpNbBar'; bar.dataset.v = '12';
+  bar = document.createElement('div'); bar.className = 'kgptalkieNbBar'; bar.dataset.v = '12';
   bar.innerHTML = nbBtn('code', 'add', 'Code', 'Add a code cell below the current one') + nbBtn('md', 'add', 'Markdown', 'Add a markdown cell below the current one')
-   + nbBtn('ai', 'sparkle', 'AI Cell', 'Add an AI cell: describe what you want in plain words, the SQL appears in the cell below') + '<span class="kgpSep"></span>'
-   + nbBtn('runall', 'run-all', 'Run All', 'Run every cell from the top') + nbBtn('clear', 'clear-all', 'Clear All Outputs', 'Remove every result') + nbBtn('restart', 'debug-restart', 'Restart', 'Clear every output and count from [1] again') + '<span class="kgpSep"></span>'
+   + nbBtn('ai', 'sparkle', 'AI Cell', 'Add an AI cell: describe what you want in plain words, the SQL appears in the cell below') + '<span class="kgptalkieSep"></span>'
+   + nbBtn('runall', 'run-all', 'Run All', 'Run every cell from the top') + nbBtn('clear', 'clear-all', 'Clear All Outputs', 'Remove every result') + nbBtn('restart', 'debug-restart', 'Restart', 'Clear every output and count from [1] again') + '<span class="kgptalkieSep"></span>'
    + nbBtn('vars', 'symbol-variable', 'Variables', 'Values for {{name}} placeholders in your SQL') + nbBtn('export', 'export', 'Export', 'Export the notebook (.sql, .sqlnb, HTML, PDF, Markdown) or import a .sql / .sqlnb file')
-   + '<span class="kgpSp"></span><span class="kgpDb"></span><span class="kgpTag none" title="Set in Notebook Settings"></span>' + nbBtn('aicfg', 'sparkle', 'Configure AI', 'Choose the AI provider, key and model') + nbBtn('settings', 'settings-gear', '', 'Notebook Settings: query timeout, safety checks, connection tag, keyword case') + nbBtn('start', 'question', '', 'Get Started: the sample notebook and a short tour');
+   + '<span class="kgptalkieSp"></span><span class="kgptalkieDb"></span><span class="kgptalkieTag none" title="Set in Notebook Settings"></span>' + nbBtn('aicfg', 'sparkle', 'Configure AI', 'Choose the AI provider, key and model') + nbBtn('settings', 'settings-gear', '', 'Notebook Settings: query timeout, safety checks, connection tag, keyword case') + nbBtn('start', 'question', '', 'Get Started: the sample notebook and a short tour');
   bar.addEventListener('mousedown', e => {
    const b = e.target.closest('button'); if (!b) return; e.preventDefault(); e.stopPropagation(); const ci = selIndex(ed);
    const a = b.dataset.a;
    if (a === 'code') A.addBelow(ed, ci, 'mysql'); else if (a === 'md') A.addBelow(ed, ci, 'markdown'); else if (a === 'ai') A.addAi(ed, ci); else if (a === 'aicfg') aiDialog(); else if (a === 'vars') varsDialog(ed); else if (a === 'settings') settingsDialog(ed); else if (a === 'start') startDialog(ed);
    else if (a === 'runall') A.runAll(ed, b); else if (a === 'clear') A.clearAll(ed); else if (a === 'restart') A.restart(ed); else if (a === 'export') exportMenu(ed, b);
   }, { signal: AC.signal });
-  const sink = document.createElement('div'); sink.className = 'kgpSink'; sink.tabIndex = -1; bar.appendChild(sink);
-  sink.addEventListener('keydown', e => { if (ed.kgpCmd) cmdKey(ed, e); }, { signal: AC.signal });
+  const sink = document.createElement('div'); sink.className = 'kgptalkieSink'; sink.tabIndex = -1; bar.appendChild(sink);
+  sink.addEventListener('keydown', e => { if (ed.kgptalkieCmd) cmdKey(ed, e); }, { signal: AC.signal });
   par.insertBefore(bar, host);
  };
 
@@ -1856,11 +1856,11 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
  const ensureChip = () => {
   const tb = document.getElementById('desktopWorkspaceTitlebar');
   document.querySelectorAll('.tabview.top.dbModuleTabview > .tabAreaContainer').forEach(area => {
-   let chip = area.querySelector(':scope > .kgpChip');
+   let chip = area.querySelector(':scope > .kgptalkieChip');
    if (!tb) { if (chip) chip.remove(); return; }
    if (!chip) {
-    chip = document.createElement('button'); chip.className = 'kgpChip'; chip.title = 'Show or hide the connection bar';
-    chip.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); P.bar = !P.bar; store.set('kgpTitleOpen', P.bar ? '1' : '0'); document.body.classList.toggle('kgpTitleOpen', P.bar); chip.dataset.sig = ''; ensureChip(); }, { signal: AC.signal });
+    chip = document.createElement('button'); chip.className = 'kgptalkieChip'; chip.title = 'Show or hide the connection bar';
+    chip.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); P.bar = !P.bar; store.set('kgptalkieTitleOpen', P.bar ? '1' : '0'); document.body.classList.toggle('kgptalkieTitleOpen', P.bar); chip.dataset.sig = ''; ensureChip(); }, { signal: AC.signal });
     area.appendChild(chip);
    }
    const q = s => { const e = tb.querySelector(s); return e ? e.textContent.trim() : ''; };
@@ -1872,11 +1872,11 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
  };
 
  /* ---------- VS Code-style activity bar + side panels ----------
-    Explorer = our own folder tree (files through server.py's read-only /kgp/fs/); Schemas, Administration and
+    Explorer = our own folder tree (files through server.py's read-only /kgptalkie/fs/); Schemas, Administration and
     Oracle Cloud = Workbench's own sidebar sections, one at a time and full height. */
- const FSURL = 'http://127.0.0.1:9241/kgp/fs/';
+ const FSURL = 'http://127.0.0.1:9241/kgptalkie/fs/';
  const fsGet = async (op, path) => {
-  const r = await fetch(FSURL + op + (path ? '?path=' + encodeURIComponent(path) : ''), { headers: { 'X-KGP': '1' }, cache: 'no-store' });
+  const r = await fetch(FSURL + op + (path ? '?path=' + encodeURIComponent(path) : ''), { headers: { 'X-KGPTalkie': '1' }, cache: 'no-store' });
   if (!r.ok) { let m = r.statusText; try { m = (await r.json()).error || m; } catch (e) { } throw new Error(m); }
   return op === 'read' ? r.text() : r.json();
  };
@@ -1886,10 +1886,10 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
   { id: 'admin', icon: 'dashboard', t: 'Administration', secs: ['administration'] },
   { id: 'oci', icon: 'cloud', t: 'Oracle Cloud Infrastructure', secs: ['oci'] },
  ];
- P.panel = store.get('kgpPanel', 'explorer'); if (!PANELS.some(p => p.id === P.panel)) P.panel = 'explorer';
- const X = W.kgpExp || (W.kgpExp = { cache: new Map(), loading: new Set(), sel: '', err: '' });
- X.folder = store.get('kgpFolder', ''); try { X.open = new Set(JSON.parse(store.get('kgpOpenDirs', '[]'))); } catch (e) { X.open = new Set(); }
- const saveOpen = () => store.set('kgpOpenDirs', JSON.stringify([...X.open].slice(-300)));
+ P.panel = store.get('kgptalkiePanel', 'explorer'); if (!PANELS.some(p => p.id === P.panel)) P.panel = 'explorer';
+ const X = W.kgptalkieExp || (W.kgptalkieExp = { cache: new Map(), loading: new Set(), sel: '', err: '' });
+ X.folder = store.get('kgptalkieFolder', ''); try { X.open = new Set(JSON.parse(store.get('kgptalkieOpenDirs', '[]'))); } catch (e) { X.open = new Set(); }
+ const saveOpen = () => store.set('kgptalkieOpenDirs', JSON.stringify([...X.open].slice(-300)));
  const allRoots = () => [...document.querySelectorAll('*')].filter(e => e.__k);
  const findComp = pred => { let f = null; const walk = v => { if (!v || f) return; const c = v.__c; if (c && pred(c)) { f = c; return; } (v.__k || []).forEach(walk); }; for (const r of allRoots()) { walk(r.__k); if (f) break; } return f; };
  const sideShown = () => { const h = document.getElementById('pane0Host'); return !!h && h.getBoundingClientRect().width > 40; };
@@ -1904,24 +1904,24 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
   '.png': ['file-media', '#A074C4'], '.jpg': ['file-media', '#A074C4'], '.jpeg': ['file-media', '#A074C4'], '.gif': ['file-media', '#A074C4'], '.svg': ['file-media', '#A074C4'], '.mp4': ['file-media', '#A074C4'],
   '.pdf': ['file-pdf', '#C0392B'], '.zip': ['file-zip', '#7A7A7A'], '.txt': ['file', '#7A7A7A'], '.log': ['output', '#7A7A7A'] };
  let toastT = 0;
- const toast = msg => { const b = document.querySelector('.kgpExp .kgpToast'); if (!b) return; b.textContent = msg; b.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => b.classList.remove('on'), 3500); };
+ const toast = msg => { const b = document.querySelector('.kgptalkieExp .kgptalkieToast'); if (!b) return; b.textContent = msg; b.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => b.classList.remove('on'), 3500); };
  const loadDir = async (d, force) => {
   if (!force && X.cache.has(d)) return; if (X.loading.has(d)) return; X.loading.add(d);
   try { const r = await fsGet('list', d); X.cache.set(d, r.items); X.err = ''; } catch (e) { X.cache.set(d, { error: String(e.message || e) }); if (d === X.folder) X.err = String(e.message || e); }
   finally { X.loading.delete(d); renderTree(); }
  };
- const setFolder = path => { if (!path) return; X.folder = path; store.set('kgpFolder', path); X.cache.clear(); X.sel = ''; X.err = ''; X.open.add(path); saveOpen(); renderTree(); loadDir(path, true); };
- W.kgpOnFolder = setFolder;
+ const setFolder = path => { if (!path) return; X.folder = path; store.set('kgptalkieFolder', path); X.cache.clear(); X.sel = ''; X.err = ''; X.open.add(path); saveOpen(); renderTree(); loadDir(path, true); };
+ W.kgptalkieOnFolder = setFolder;
  /* the host's folder dialog answers with a "selectFile" message: take ours, pass everything else to the app */
  const hookHost = () => {
-  const eh = W.electronHost; if (W.kgpHostHooked === 2 || !eh || typeof eh.setMessageHandler !== 'function' || typeof W.onNativeMessage !== 'function') return;
-  W.kgpHostHooked = 2;                                 // 2 = dispatches to W.kgpPick[id] (import) as well as the folder dialog
+  const eh = W.electronHost; if (W.kgptalkieHostHooked === 2 || !eh || typeof eh.setMessageHandler !== 'function' || typeof W.onNativeMessage !== 'function') return;
+  W.kgptalkieHostHooked = 2;                                 // 2 = dispatches to W.kgptalkiePick[id] (import) as well as the folder dialog
   eh.setMessageHandler(m => {
    try {
     if (m && m.command === 'selectFile' && m.data) {
      const id = m.data.resourceId, f = m.data.file && m.data.file[0];
-     if (id === 'kgpOpenFolder') { if (f && W.kgpOnFolder) W.kgpOnFolder(f.path); return; }
-     if (W.kgpPick && typeof W.kgpPick[id] === 'function') { if (f) W.kgpPick[id](f); return; }
+     if (id === 'kgptalkieOpenFolder') { if (f && W.kgptalkieOnFolder) W.kgptalkieOnFolder(f.path); return; }
+     if (W.kgptalkiePick && typeof W.kgptalkiePick[id] === 'function') { if (f) W.kgptalkiePick[id](f); return; }
     }
    } catch (e) { }
    return W.onNativeMessage(m);
@@ -1929,7 +1929,7 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
  };
  const pickFolder = () => {
   hookHost();
-  if (W.electronHost && W.kgpHostHooked) W.electronHost.postMessage({ source: 'app', command: 'showOpenDialog', data: { id: 'kgpOpenFolder', title: 'Open Folder', openLabel: 'Select Folder', canSelectFiles: false, canSelectFolders: true, canSelectMany: false, default: X.folder || undefined } });
+  if (W.electronHost && W.kgptalkieHostHooked) W.electronHost.postMessage({ source: 'app', command: 'showOpenDialog', data: { id: 'kgptalkieOpenFolder', title: 'Open Folder', openLabel: 'Select Folder', canSelectFiles: false, canSelectFolders: true, canSelectMany: false, default: X.folder || undefined } });
   else toast('The folder dialog needs the Workbench window.');
  };
  let opening = '';
@@ -1944,47 +1944,47 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
    await dm.openSupportedFile(pe, path, text);
   } catch (e) { toast('Could not open: ' + (e.message || e)); } finally { setTimeout(() => { if (opening === path) opening = ''; }, 800); }
  };
- const row = (cls, depth, inner, title) => `<div class="kgpRow ${cls}" style="padding-left:${8 + depth * 12}px"${title ? ` title="${esc(title)}"` : ''}>${inner}</div>`;
+ const row = (cls, depth, inner, title) => `<div class="kgptalkieRow ${cls}" style="padding-left:${8 + depth * 12}px"${title ? ` title="${esc(title)}"` : ''}>${inner}</div>`;
  const treeHtml = (d, depth) => {
   const items = X.cache.get(d);
-  if (!items) return row('kgpNote', depth, '<span class="kgpTw"></span>Loading...');
-  if (items.error) return row('kgpNote kgpErr', depth, '<span class="kgpTw"></span>' + esc(items.error));
-  if (!items.length && depth) return row('kgpNote', depth, '<span class="kgpTw"></span>Empty folder');
+  if (!items) return row('kgptalkieNote', depth, '<span class="kgptalkieTw"></span>Loading...');
+  if (items.error) return row('kgptalkieNote kgptalkieErr', depth, '<span class="kgptalkieTw"></span>' + esc(items.error));
+  if (!items.length && depth) return row('kgptalkieNote', depth, '<span class="kgptalkieTw"></span>Empty folder');
   let h = '';
   for (const it of items) {
-   const p = joinPath(d, it.n), sel = X.sel === p ? ' kgpSel' : '';
+   const p = joinPath(d, it.n), sel = X.sel === p ? ' kgptalkieSel' : '';
    if (it.d) {
     const o = X.open.has(p); if (o && !X.cache.has(p)) loadDir(p);
-    h += `<div data-p="${esc(p)}" data-d="1">` + row('kgpDir' + sel, depth, `<span class="kgpTw codicon codicon-chevron-${o ? 'down' : 'right'}"></span><span class="kgpNm">${esc(it.n)}</span>`, p) + '</div>';
+    h += `<div data-p="${esc(p)}" data-d="1">` + row('kgptalkieDir' + sel, depth, `<span class="kgptalkieTw codicon codicon-chevron-${o ? 'down' : 'right'}"></span><span class="kgptalkieNm">${esc(it.n)}</span>`, p) + '</div>';
     if (o) h += treeHtml(p, depth + 1);
    } else {
     const e = extOf(it.n), ic = ICON[e] || ['file', '#8A8A8A'], can = CAN_OPEN.has(e);
-    h += `<div data-p="${esc(p)}">` + row('kgpFile' + sel + (can ? '' : ' kgpNo'), depth, `<span class="kgpTw"></span><span class="kgpIc codicon codicon-${ic[0]}" style="color:${ic[1]}"></span><span class="kgpNm">${esc(it.n)}</span>`, p) + '</div>';
+    h += `<div data-p="${esc(p)}">` + row('kgptalkieFile' + sel + (can ? '' : ' kgptalkieNo'), depth, `<span class="kgptalkieTw"></span><span class="kgptalkieIc codicon codicon-${ic[0]}" style="color:${ic[1]}"></span><span class="kgptalkieNm">${esc(it.n)}</span>`, p) + '</div>';
    }
   }
   return h;
  };
  const renderTree = () => {
-  const body = document.querySelector('.kgpExp .kgpExpBody'); if (!body) return;
+  const body = document.querySelector('.kgptalkieExp .kgptalkieExpBody'); if (!body) return;
   const st = body.scrollTop;
   if (!X.folder) {
-   body.innerHTML = `<div class="kgpEmpty"><p>You have not yet opened a folder.</p><button class="kgpBtn" data-a="open">Open Folder</button><p class="kgpHint">Pick the folder you work in. Its .sql scripts and notebooks open here in Workbench.</p></div>`;
+   body.innerHTML = `<div class="kgptalkieEmpty"><p>You have not yet opened a folder.</p><button class="kgptalkieBtn" data-a="open">Open Folder</button><p class="kgptalkieHint">Pick the folder you work in. Its .sql scripts and notebooks open here in Workbench.</p></div>`;
   } else {
    const o = X.open.has(X.folder);
-   body.innerHTML = `<div data-p="${esc(X.folder)}" data-d="1" data-root="1">` + row('kgpRoot', 0, `<span class="kgpTw codicon codicon-chevron-${o ? 'down' : 'right'}"></span><span class="kgpNm">${esc(baseName(X.folder))}</span>`, X.folder) + '</div>'
-    + (o ? (X.err ? row('kgpNote kgpErr', 1, '<span class="kgpTw"></span>' + esc(X.err)) : treeHtml(X.folder, 1)) : '');
+   body.innerHTML = `<div data-p="${esc(X.folder)}" data-d="1" data-root="1">` + row('kgptalkieRoot', 0, `<span class="kgptalkieTw codicon codicon-chevron-${o ? 'down' : 'right'}"></span><span class="kgptalkieNm">${esc(baseName(X.folder))}</span>`, X.folder) + '</div>'
+    + (o ? (X.err ? row('kgptalkieNote kgptalkieErr', 1, '<span class="kgptalkieTw"></span>' + esc(X.err)) : treeHtml(X.folder, 1)) : '');
   }
   body.scrollTop = st;
  };
  const ensureExplorer = () => {
   const pane = document.getElementById('desktopSidebarPane'); if (!pane) return;
-  let ex = pane.querySelector(':scope > .kgpExp'); if (ex) return;
-  ex = document.createElement('div'); ex.className = 'kgpExp';
-  ex.innerHTML = `<div class="kgpExpHead"><span>EXPLORER</span><span class="kgpActs">`
+  let ex = pane.querySelector(':scope > .kgptalkieExp'); if (ex) return;
+  ex = document.createElement('div'); ex.className = 'kgptalkieExp';
+  ex.innerHTML = `<div class="kgptalkieExpHead"><span>EXPLORER</span><span class="kgptalkieActs">`
    + `<button data-a="open" title="Open Folder..."><span class="codicon codicon-folder-opened"></span></button>`
    + `<button data-a="refresh" title="Refresh Explorer"><span class="codicon codicon-refresh"></span></button>`
    + `<button data-a="collapse" title="Collapse Folders in Explorer"><span class="codicon codicon-collapse-all"></span></button></span></div>`
-   + `<div class="kgpExpBody"></div><div class="kgpToast"></div>`;
+   + `<div class="kgptalkieExpBody"></div><div class="kgptalkieToast"></div>`;
   ex.addEventListener('click', e => {
    const b = e.target.closest('button[data-a]');
    if (b) { const a = b.dataset.a; if (a === 'open') pickFolder(); else if (a === 'refresh') { const keep = X.folder; X.cache.clear(); if (keep) loadDir(keep, true); renderTree(); } else if (a === 'collapse') { X.open = new Set(X.folder ? [X.folder] : []); saveOpen(); renderTree(); } return; }
@@ -2002,24 +2002,24 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
  const curPanel = hs => { const pd = PANELS.find(p => p.id === P.panel); if (!pd || !pd.secs || hs.some(x => pd.secs.includes(x.id))) return P.panel; return 'schemas'; };
  const applyPanel = force => {
   const hs = secHosts(), cur = curPanel(hs), pd = PANELS.find(p => p.id === cur);
-  PANELS.forEach(p => document.body.classList.toggle('kgpP-' + p.id, p.id === cur));
+  PANELS.forEach(p => document.body.classList.toggle('kgptalkieP-' + p.id, p.id === cur));
   const shown = (pd && pd.secs) ? hs.filter(x => pd.secs.includes(x.id)) : [];
-  hs.forEach(x => { const on = shown.includes(x); x.h.classList.toggle('kgpHideSec', !on); x.h.classList.toggle('kgpFullSec', on); });
-  document.querySelectorAll('.kgpAct button[data-p]').forEach(b => { const q = PANELS.find(p => p.id === b.dataset.p); b.classList.toggle('kgpNA', !!(q && q.secs) && !hs.some(x => q.secs.includes(x.id))); b.classList.toggle('on', b.dataset.p === cur && sideShown()); });
+  hs.forEach(x => { const on = shown.includes(x); x.h.classList.toggle('kgptalkieHideSec', !on); x.h.classList.toggle('kgptalkieFullSec', on); });
+  document.querySelectorAll('.kgptalkieAct button[data-p]').forEach(b => { const q = PANELS.find(p => p.id === b.dataset.p); b.classList.toggle('kgptalkieNA', !!(q && q.secs) && !hs.some(x => q.secs.includes(x.id))); b.classList.toggle('on', b.dataset.p === cur && sideShown()); });
   const sig = cur + '|' + shown.map(x => x.id).join(',');
   if (force || X.secSig !== sig) { X.secSig = sig; shown.forEach(x => showSection(x.id)); }
  };
  const setPanel = id => {
   if (id === P.panel && sideShown()) { toggleSide(); setTimeout(applyPanel, 50); return; }
-  P.panel = id; store.set('kgpPanel', id); if (!sideShown()) toggleSide(); applyPanel(true); setTimeout(applyPanel, 120);
+  P.panel = id; store.set('kgptalkiePanel', id); if (!sideShown()) toggleSide(); applyPanel(true); setTimeout(applyPanel, 120);
  };
  const ensureActivity = () => {
   const root = document.getElementById('root'); if (!root || !document.getElementById('desktopSidebarPane')) return;
-  document.body.classList.add('kgpActOn');
-  let bar = root.querySelector(':scope > .kgpAct');
+  document.body.classList.add('kgptalkieActOn');
+  let bar = root.querySelector(':scope > .kgptalkieAct');
   if (!bar) {
-   bar = document.createElement('div'); bar.className = 'kgpAct';
-   bar.innerHTML = PANELS.map(p => `<button data-p="${p.id}" title="${p.t}"><span class="codicon codicon-${p.icon}"></span></button>`).join('') + '<span class="kgpSp"></span><button data-a="settings" title="Settings"><span class="codicon codicon-settings-gear"></span></button>';
+   bar = document.createElement('div'); bar.className = 'kgptalkieAct';
+   bar.innerHTML = PANELS.map(p => `<button data-p="${p.id}" title="${p.t}"><span class="codicon codicon-${p.icon}"></span></button>`).join('') + '<span class="kgptalkieSp"></span><button data-a="settings" title="Settings"><span class="codicon codicon-settings-gear"></span></button>';
    bar.addEventListener('mousedown', e => {
     const b = e.target.closest('button'); if (!b || e.button !== 0) return; e.preventDefault();
     if (b.dataset.p) setPanel(b.dataset.p);
@@ -2033,12 +2033,12 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
  };
 
  /* ---------- Settings > Code Editor > Notebook Autocomplete ---------- */
- const SET_ID = 'editor.kgpAutocomplete';
- const setSuggest = on => { if (P.suggest === on) return; P.suggest = on; store.set('kgpSuggest', on ? '1' : '0'); list.forEach(applyOpts); };
+ const SET_ID = 'editor.kgptalkieAutocomplete';
+ const setSuggest = on => { if (P.suggest === on) return; P.suggest = on; store.set('kgptalkieSuggest', on ? '1' : '0'); list.forEach(applyOpts); };
  const ensureSetting = inst => {
   const cat = (inst.state.settingsTree || []).find(c => c.key === 'editor'); if (!cat) return;
   if (!cat.values.some(v => v.id === SET_ID)) {
-   cat.values.push({ id: SET_ID, key: 'kgpAutocomplete', title: 'Notebook Autocomplete', valueType: 'boolean', defaultValue: P.suggest, advanced: false, parameters: {},
+   cat.values.push({ id: SET_ID, key: 'kgptalkieAutocomplete', title: 'Notebook Autocomplete', valueType: 'boolean', defaultValue: P.suggest, advanced: false, parameters: {},
     description: 'Show code suggestions automatically while typing in notebooks and scripts. Ctrl+Space always opens them.' });
    try { if (inst.filterTimer) { clearTimeout(inst.filterTimer); inst.filterTimer = null; } inst.runFilterTimer(); } catch (e) { }
   }
@@ -2047,7 +2047,7 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
 
  /* ---------- editors ---------- */
  const applyOpts = ed => {
-  const nb = isNB(ed); const v = 'v5' + (P.suggest ? 1 : 0); if (ed.kgpOpt === v) return; ed.kgpOpt = v;
+  const nb = isNB(ed); const v = 'v5' + (P.suggest ? 1 : 0); if (ed.kgptalkieOpt === v) return; ed.kgptalkieOpt = v;
   const o = { lineHeight: nb ? NB : SC, padding: { top: nb ? 0 : 14, bottom: 14 }, quickSuggestions: P.suggest ? { other: true, comments: false, strings: false } : false, suggestOnTriggerCharacters: P.suggest, wordBasedSuggestions: 'off' };
   if (nb) Object.assign(o, { lineNumbers: 'off', lineDecorationsWidth: MW, glyphMargin: false, folding: false, renderLineHighlight: 'none' });
   ed.updateOptions(o);
@@ -2055,24 +2055,24 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
  const find = () => {
   const root = [...document.querySelectorAll('*')].find(e => e.__k); const out = [];
   let setEd = null;
-  const walk = v => { if (!v) return; const c = v.__c; if (c && c.editor && typeof c.editor.updateOptions === 'function') { out.push(c.editor); c.editor.kgpCE = c; } if (c && c.state && Array.isArray(c.state.settingsTree) && typeof c.runFilterTimer === 'function') setEd = c; (v.__k || []).forEach(walk); };
+  const walk = v => { if (!v) return; const c = v.__c; if (c && c.editor && typeof c.editor.updateOptions === 'function') { out.push(c.editor); c.editor.kgptalkieCE = c; } if (c && c.state && Array.isArray(c.state.settingsTree) && typeof c.runFilterTimer === 'function') setEd = c; (v.__k || []).forEach(walk); };
   if (root) walk(root.__k); list = out;
   const sd = document.getElementById('settingsDialog'); if (sd && sd.__k && !setEd) walk(sd.__k);   // Settings is its own render root (a portal)
-  if (setEd) try { ensureSetting(setEd); } catch (e) { W.kgpErr = String(e && e.stack || e); }
+  if (setEd) try { ensureSetting(setEd); } catch (e) { W.kgptalkieErr = String(e && e.stack || e); }
   ensureChip();
-  try { ensureActivity(); } catch (e) { W.kgpErr = String(e && e.stack || e); }
+  try { ensureActivity(); } catch (e) { W.kgptalkieErr = String(e && e.stack || e); }
   for (const ed of list) {
    const dom = ed.getDomNode(); if (!dom) continue; const nb = isNB(ed);
    applyOpts(ed);
    if (nb) ensureNbBar(ed);
-   if (dom.kgpAC === AC) continue;
-   dom.kgpAC = AC;
+   if (dom.kgptalkieAC === AC) continue;
+   dom.kgptalkieAC = AC;
    dom.addEventListener('wheel', e => { if (!e.target.closest('.view-zones')) return; const th = e.target.closest('.tabulator-tableholder'); if (th && th.scrollHeight > th.clientHeight + 1) return; ed.setScrollTop(ed.getScrollTop() + e.deltaY); e.preventDefault(); }, { capture: true, passive: false, signal: AC.signal });
    if (!nb) continue;
-   dom.addEventListener('mousedown', e => { if (e.button !== 0) return; const fr = e.target.closest('.kgpCap, .kgpBar'); const zk = fr && fr.closest('[data-kcell]'); if (zk) { e.preventDefault(); e.stopPropagation(); closeMenu(); enterCmd(ed, +zk.dataset.kcell); } }, { capture: true, signal: AC.signal });
+   dom.addEventListener('mousedown', e => { if (e.button !== 0) return; const fr = e.target.closest('.kgptalkieCap, .kgptalkieBar'); const zk = fr && fr.closest('[data-kcell]'); if (zk) { e.preventDefault(); e.stopPropagation(); closeMenu(); enterCmd(ed, +zk.dataset.kcell); } }, { capture: true, signal: AC.signal });
    DISP.push(ed.onDidFocusEditorText(() => exitCmd(ed)));
    hookCase(ed);
-   dom.addEventListener('mousedown', e => { if (!e.target.closest('.kgpP')) return; e.preventDefault(); e.stopPropagation(); const t = ed.getTargetAtClientPoint(e.clientX, e.clientY); const ln = t && t.position && t.position.lineNumber; const i = ln ? cellAt(ed, ln) : -1; if (i >= 0) A.run(ed, i); }, { capture: true, signal: AC.signal });
+   dom.addEventListener('mousedown', e => { if (!e.target.closest('.kgptalkieP')) return; e.preventDefault(); e.stopPropagation(); const t = ed.getTargetAtClientPoint(e.clientX, e.clientY); const ln = t && t.position && t.position.lineNumber; const i = ln ? cellAt(ed, ln) : -1; if (i >= 0) A.run(ed, i); }, { capture: true, signal: AC.signal });
    dom.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !e.ctrlKey && !e.altKey && !e.shiftKey && ed.hasTextFocus()) {
      const w = dom.querySelector('.suggest-widget.visible, .find-widget.visible, .parameter-hints-widget.visible, .rename-box');
@@ -2083,13 +2083,13 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
     if (e.key === 'Enter' && (e.ctrlKey || e.shiftKey) && !e.altKey && isMd(x)) { e.preventDefault(); e.stopPropagation(); A.render(ed, i, e.shiftKey); return; }
     if ((e.code === 'KeyF' || (e.key || '').toLowerCase() === 'f') && e.shiftKey && e.altKey && !e.ctrlKey && !isMd(x)) { e.preventDefault(); e.stopPropagation(); A.format(ed, i); }
    }, { capture: true, signal: AC.signal });
-   const setHover = i => { const S = ed.kgpNB; if (S && S.hover !== i) { S.hover = i; S.dsig = ''; } };
+   const setHover = i => { const S = ed.kgptalkieNB; if (S && S.hover !== i) { S.hover = i; S.dsig = ''; } };
    DISP.push(ed.onMouseMove(ev => { const t = ev.target; const z = t.element && t.element.closest && t.element.closest('[data-kcell]'); let i = -1;
     if (z) i = +z.dataset.kcell; else if (t.position) i = cellAt(ed, t.position.lineNumber); else if (t.detail && typeof t.detail.afterLineNumber === 'number') i = cellAt(ed, t.detail.afterLineNumber);
     setHover(i); }));
    DISP.push(ed.onMouseLeave(() => setHover(-1)));
    DISP.push(ed.onDidChangeCursorPosition(ev => {
-    const S = ed.kgpNB; if (!S) return; const all = ctxs(ed); const ni = cellAt(ed, ev.position.lineNumber);
+    const S = ed.kgptalkieNB; if (!S) return; const all = ctxs(ed); const ni = cellAt(ed, ev.position.lineNumber);
     const prev = all[S.sel]; if (prev && isMd(prev) && MDE.has(prev) && S.sel !== ni) { MDE.delete(prev); S.sig = ''; }
     if (S.sel !== ni) { S.sel = ni; S.dsig = ''; }
    }));
@@ -2097,15 +2097,15 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
  };
 
  /* ---------- cell boxes, counts, line numbers, play, toolbars, markdown ---------- */
- const cap = (cls, withBar) => { const z = document.createElement('div'); const p = document.createElement('div'); p.className = 'kgpCap ' + cls; z.appendChild(p); let b = null; if (withBar) { b = document.createElement('div'); b.className = 'kgpBar ' + cls.split(' ')[1]; z.appendChild(b); } return { z, parts: b ? [p, b] : [p] }; };
+ const cap = (cls, withBar) => { const z = document.createElement('div'); const p = document.createElement('div'); p.className = 'kgptalkieCap ' + cls; z.appendChild(p); let b = null; if (withBar) { b = document.createElement('div'); b.className = 'kgptalkieBar ' + cls.split(' ')[1]; z.appendChild(b); } return { z, parts: b ? [p, b] : [p] }; };
  const insButtons = (ed, at) => {
-  const d = document.createElement('div'); d.className = 'kgpIns';
+  const d = document.createElement('div'); d.className = 'kgptalkieIns';
   d.innerHTML = '<button data-l="mysql"><span class="codicon codicon-add"></span>Code</button><button data-l="markdown"><span class="codicon codicon-add"></span>Markdown</button>';
   d.addEventListener('mousedown', e => { const b = e.target.closest('button'); if (!b) return; e.preventDefault(); e.stopPropagation(); A.insertAt(ed, at, b.dataset.l); }, { signal: AC.signal });
   return d;
  };
  const cellBar = (ed, i, x, top) => {
-  const bar = document.createElement('div'); bar.className = 'kgpCellBar'; bar.style.top = top + 'px';
+  const bar = document.createElement('div'); bar.className = 'kgptalkieCellBar'; bar.style.top = top + 'px';
   const btn = (a, icon, t) => `<button data-a="${a}" title="${t}"><span class="codicon codicon-${icon}"></span></button>`;
   bar.innerHTML = isAi(x)
    ? btn('aigen', 'sparkle', 'Write the SQL (Ctrl+Enter)') + btn('more', 'ellipsis', 'More Actions') + btn('del', 'trash', 'Delete Cell')
@@ -2126,7 +2126,7 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
 
  const paint = ed => {
   const m = ed.getModel(); const arr = ctxs(ed); if (!arr.length) return;
-  const S = ed.kgpNB || (ed.kgpNB = { zones: [], decos: [], sig: '', dsig: '', caps: [], bars: [], hover: -1, sel: -1 });
+  const S = ed.kgptalkieNB || (ed.kgptalkieNB = { zones: [], decos: [], sig: '', dsig: '', caps: [], bars: [], hover: -1, sel: -1 });
   if (S.sel < 0) { const p0 = ed.getPosition(); S.sel = p0 ? cellAt(ed, p0.lineNumber) : -1; }
   syncAi(ed);
   const cw = ed.getLayoutInfo().contentWidth;
@@ -2147,17 +2147,17 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
      const gap = i ? GAP : GAP0, base = { suppressMouseDown: true, showInHiddenAreas: true };
      if (rendered(x)) {
       const z = document.createElement('div'); z.dataset.kcell = i;
-      const g = document.createElement('div'); g.className = 'kgpGap'; g.style.height = gap + 'px'; if (i) g.appendChild(insButtons(ed, i)); z.appendChild(g);
-      const w = document.createElement('div'); w.className = 'kgpMdWrap'; w.style.top = gap + 'px';
-      const body = document.createElement('div'); body.className = 'kgpMdBody'; body.innerHTML = mdToHtml(textOf(m, x)); w.appendChild(body); w.appendChild(langBtn(ed, i, x));
+      const g = document.createElement('div'); g.className = 'kgptalkieGap'; g.style.height = gap + 'px'; if (i) g.appendChild(insButtons(ed, i)); z.appendChild(g);
+      const w = document.createElement('div'); w.className = 'kgptalkieMdWrap'; w.style.top = gap + 'px';
+      const body = document.createElement('div'); body.className = 'kgptalkieMdBody'; body.innerHTML = mdToHtml(textOf(m, x)); w.appendChild(body); w.appendChild(langBtn(ed, i, x));
       body.addEventListener('click', e => { if (e.target.closest('a')) e.preventDefault(); }, { signal: AC.signal });
       w.addEventListener('mousedown', e => { if (e.button !== 0) return; e.stopPropagation(); closeMenu(); S.sel = i; S.dsig = ''; }, { signal: AC.signal });
       w.addEventListener('mouseup', e => { if (e.button !== 0) return; enterCmd(ed, i); }, { signal: AC.signal });
       z.appendChild(w);
       const h = Math.max(30, measure(w, Math.max(200, cw - RIGHT)));
       const bar = cellBar(ed, i, x, gap - 11); z.appendChild(bar);
-      const mz = document.createElement('div'); mz.dataset.kcell = i; const mb = document.createElement('div'); mb.className = 'kgpBar md'; mb.style.top = gap + 'px'; mb.style.height = h + 'px'; mz.appendChild(mb);
-      const mm = document.createElement('div'); mm.className = 'kgpMdM'; mm.style.top = gap + 'px'; mm.style.height = h + 'px'; mz.appendChild(mm);
+      const mz = document.createElement('div'); mz.dataset.kcell = i; const mb = document.createElement('div'); mb.className = 'kgptalkieBar md'; mb.style.top = gap + 'px'; mb.style.height = h + 'px'; mz.appendChild(mb);
+      const mm = document.createElement('div'); mm.className = 'kgptalkieMdM'; mm.style.top = gap + 'px'; mm.style.height = h + 'px'; mz.appendChild(mm);
       mm.addEventListener('mousedown', e => { if (e.button !== 0) return; e.preventDefault(); e.stopPropagation(); closeMenu(); enterCmd(ed, i); }, { signal: AC.signal });
       mm.addEventListener('dblclick', e => { e.preventDefault(); e.stopPropagation(); A.edit(ed, i); }, { signal: AC.signal });
       S.zones.push(a.addZone({ ...base, afterLineNumber: x.startLine - 1, ordinal: 1e9 + i, heightInPx: gap + h, domNode: z, marginDomNode: mz }));
@@ -2166,18 +2166,18 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
      }
      const tc = cap('c t'), tm = cap('m t', true), bc = cap('c b'), bm = cap('m b', true);
      tc.z.dataset.kcell = i; tm.z.dataset.kcell = i; bc.z.dataset.kcell = i; bm.z.dataset.kcell = i;
-     const g = document.createElement('div'); g.className = 'kgpGap'; g.style.height = gap + 'px'; if (i) g.appendChild(insButtons(ed, i)); tc.z.appendChild(g);
+     const g = document.createElement('div'); g.className = 'kgptalkieGap'; g.style.height = gap + 'px'; if (i) g.appendChild(insButtons(ed, i)); tc.z.appendChild(g);
      const bar = cellBar(ed, i, x, gap - 11); tc.z.appendChild(bar);
      S.zones.push(a.addZone({ ...base, afterLineNumber: x.startLine - 1, ordinal: 1e9 + i, heightInPx: gap + CAP, domNode: tc.z, marginDomNode: tm.z }));
      bc.z.appendChild(langBtn(ed, i, x));
      S.zones.push(a.addZone({ ...base, afterLineNumber: x.endLine, ordinal: 0, heightInPx: CAPB, domNode: bc.z, marginDomNode: bm.z }));
      S.caps.push([...tc.parts, ...tm.parts, ...bc.parts, ...bm.parts]); S.bars.push(bar);
     });
-    const tz = document.createElement('div'); tz.className = 'kgpTrail'; const tg = document.createElement('div'); tg.className = 'kgpGap'; tg.style.height = TRAIL + 'px'; tg.appendChild(insButtons(ed, arr.length)); tz.appendChild(tg);
+    const tz = document.createElement('div'); tz.className = 'kgptalkieTrail'; const tg = document.createElement('div'); tg.className = 'kgptalkieGap'; tg.style.height = TRAIL + 'px'; tg.appendChild(insButtons(ed, arr.length)); tz.appendChild(tg);
     S.zones.push(a.addZone({ suppressMouseDown: true, showInHiddenAreas: true, afterLineNumber: m.getLineCount(), ordinal: 2e9, heightInPx: TRAIL, domNode: tz }));
    });
    S.sig = sig; S.dsig = '';
-   if (ed.kgpPendingFocus) { const pf = ed.kgpPendingFocus; ed.kgpPendingFocus = null; const k = ctxs(ed).indexOf(pf.x); if (k >= 0) focusCell(ed, k, pf.atEnd); }
+   if (ed.kgptalkiePendingFocus) { const pf = ed.kgptalkiePendingFocus; ed.kgptalkiePendingFocus = null; const k = ctxs(ed).indexOf(pf.x); if (k >= 0) focusCell(ed, k, pf.atEnd); }
   }
   for (const x of arr) { const p = x.presentation; if (p && p.resultData && R.seen.get(x) !== p.resultData) { R.seen.set(x, p.resultData); R.num.set(x, ++R.n); } }
   const fi = S.sel;
@@ -2187,21 +2187,21 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
   if (dsig === S.dsig) return; S.dsig = dsig;
   const decos = []; const line = ln => ({ startLineNumber: ln, startColumn: 1, endLineNumber: ln, endColumn: 1 });
   arr.forEach((x, i) => {
-   const f = i === fi ? ' kgpF' : ''; const show = i === fi || i === S.hover;
-   (S.caps[i] || []).forEach(el => { el.classList.toggle('kgpF', !!f); el.classList.toggle('kgpH', i === S.hover); });
-   if (S.bars[i]) S.bars[i].classList.toggle('kgpShow', show && !isCmd(m, x));
+   const f = i === fi ? ' kgptalkieF' : ''; const show = i === fi || i === S.hover;
+   (S.caps[i] || []).forEach(el => { el.classList.toggle('kgptalkieF', !!f); el.classList.toggle('kgptalkieH', i === S.hover); });
+   if (S.bars[i]) S.bars[i].classList.toggle('kgptalkieShow', show && !isCmd(m, x));
    if (rendered(x)) return;
    const ai = isAi(x), s0 = ai && x.endLine > x.startLine ? x.startLine + 1 : x.startLine;   // AI cells start after the hidden marker
    for (let ln = s0; ln <= x.endLine; ln++) {
-    decos.push({ range: line(ln), options: { isWholeLine: true, className: 'kgpL' + (ai ? ' kgpLA' : '') + f, linesDecorationsClassName: 'kgpM' + f } });
-    const k = ln - s0 + 1; decos.push({ range: line(ln), options: { linesDecorationsClassName: 'kgpLn ' + rule('kgpLn' + k, String(k)) + f } });
+    decos.push({ range: line(ln), options: { isWholeLine: true, className: 'kgptalkieL' + (ai ? ' kgptalkieLA' : '') + f, linesDecorationsClassName: 'kgptalkieM' + f } });
+    const k = ln - s0 + 1; decos.push({ range: line(ln), options: { linesDecorationsClassName: 'kgptalkieLn ' + rule('kgptalkieLn' + k, String(k)) + f } });
    }
    const k = lab[i];
-   decos.push({ range: line(s0), options: { linesDecorationsClassName: 'kgpN ' + (k === 'M' ? 'kgpNM' : k === 'R' ? 'kgpNR' : k ? rule('kgpN' + k, '[' + k + ']') : 'kgpN0') } });
-   if (!isMdOnly(x)) decos.push({ range: line(s0), options: { linesDecorationsClassName: 'kgpP' + (show ? ' kgpPV' : '') } });
-   if (ai && aiEmpty[i]) decos.push({ range: { startLineNumber: s0, startColumn: 1, endLineNumber: s0, endColumn: 1 }, options: { after: { content: 'Describe what you want in plain words, then run (Ctrl+Enter). The SQL appears in the cell below.', inlineClassName: 'kgpAiHint' } } });
+   decos.push({ range: line(s0), options: { linesDecorationsClassName: 'kgptalkieN ' + (k === 'M' ? 'kgptalkieNM' : k === 'R' ? 'kgptalkieNR' : k ? rule('kgptalkieN' + k, '[' + k + ']') : 'kgptalkieN0') } });
+   if (!isMdOnly(x)) decos.push({ range: line(s0), options: { linesDecorationsClassName: 'kgptalkieP' + (show ? ' kgptalkiePV' : '') } });
+   if (ai && aiEmpty[i]) decos.push({ range: { startLineNumber: s0, startColumn: 1, endLineNumber: s0, endColumn: 1 }, options: { after: { content: 'Describe what you want in plain words, then run (Ctrl+Enter). The SQL appears in the cell below.', inlineClassName: 'kgptalkieAiHint' } } });
    const zid = x.presentation && x.presentation.zoneInfo && x.presentation.zoneInfo.zoneId;
-   if (zid) { const zm = ed.getDomNode().querySelector(`.zoneMargin[monaco-view-zone="${zid}"]`); if (zm) zm.classList.toggle('kgpF', !!f); }
+   if (zid) { const zm = ed.getDomNode().querySelector(`.zoneMargin[monaco-view-zone="${zid}"]`); if (zm) zm.classList.toggle('kgptalkieF', !!f); }
   });
   S.decos = ed.deltaDecorations(S.decos, decos);
  };
@@ -2213,9 +2213,9 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
    if (p.resultData.type === 'resultSets') {
     const t = rt.querySelector('.tabulator-table'), hd = rt.querySelector('.tabulator-header'), sb = rt.querySelector('.resultStatus');
     const st = RS.get(x), cap = st && st.expand ? 704 : 352;
-    const extra = [':scope > .kgpResBar', ':scope > .kgpViewer'].reduce((s, q) => { const e = rt.querySelector(q); return s + (e ? e.offsetHeight : 0); }, 0);
-    const cb = rt.querySelector(':scope > .kgpChartBox');
-    const fr = rt.querySelector('.kgpFRow');
+    const extra = [':scope > .kgptalkieResBar', ':scope > .kgptalkieViewer'].reduce((s, q) => { const e = rt.querySelector(q); return s + (e ? e.offsetHeight : 0); }, 0);
+    const cb = rt.querySelector(':scope > .kgptalkieChartBox');
+    const fr = rt.querySelector('.kgptalkieFRow');
     /* several statements = a strip of result tabs (Output, Result #1 ...) above the grid; it needs its own room */
     const tabs = rt.querySelector('.resultTabview > .tabAreaContainer'), th = tabs ? tabs.offsetHeight : 0;
     if (st && st.view === 'chart' && cb) box = Math.ceil(extra + cb.offsetHeight + 8);
@@ -2232,18 +2232,18 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
   }
  };
 
- const tick = () => { try { hookAll(); } catch (e) { W.kgpErr = String(e && e.stack || e); } for (const ed of list) { try { fit(ed); if (isNB(ed)) { paint(ed); paintAi(ed); resultButtons(ed); } } catch (e) { W.kgpErr = String(e && e.stack || e); } } };
- W.kgpTick = tick;                                   // tests in a hidden window (no animation frames) call this
- const loop = () => { tick(); W.kgpRaf = requestAnimationFrame(loop); };
- W.kgpTeardown = () => {
+ const tick = () => { try { hookAll(); } catch (e) { W.kgptalkieErr = String(e && e.stack || e); } for (const ed of list) { try { fit(ed); if (isNB(ed)) { paint(ed); paintAi(ed); resultButtons(ed); } } catch (e) { W.kgptalkieErr = String(e && e.stack || e); } } };
+ W.kgptalkieTick = tick;                                   // tests in a hidden window (no animation frames) call this
+ const loop = () => { tick(); W.kgptalkieRaf = requestAnimationFrame(loop); };
+ W.kgptalkieTeardown = () => {
   AC.abort(); DISP.forEach(d => { try { d.dispose(); } catch (e) { } }); closeMenu(); try { unhookWs(); } catch (e) { } try { unhookTreeMenus(); } catch (e) { } try { unhookCompletion(); } catch (e) { }
-  document.querySelectorAll('.kgpNbBar,.kgpChip,.kgpAct,.kgpExp').forEach(b => b.remove());
-  document.body.classList.remove('kgpActOn', ...PANELS.map(p => 'kgpP-' + p.id));
-  document.querySelectorAll('.kgpDlgBack,.kgpFixBtn,.kgpResAi,.kgpResBar,.kgpChartBox,.kgpViewer,.kgpFRow,.kgpPin,.kgpNbToast').forEach(b => b.remove());
-  document.querySelectorAll('.kgpChartView').forEach(b => b.classList.remove('kgpChartView'));
-  for (const ed of list) { exitCmd(ed); const S = ed.kgpNB; if (!S) continue; try { ed.changeViewZones(a => { S.zones.forEach(id => a.removeZone(id)); if (S.ai) S.ai.forEach(z => a.removeZone(z.id)); }); ed.deltaDecorations(S.decos, []); ed.setHiddenAreas([]); } catch (e) { } ed.kgpNB = null; ed.kgpOpt = ''; }
+  document.querySelectorAll('.kgptalkieNbBar,.kgptalkieChip,.kgptalkieAct,.kgptalkieExp').forEach(b => b.remove());
+  document.body.classList.remove('kgptalkieActOn', ...PANELS.map(p => 'kgptalkieP-' + p.id));
+  document.querySelectorAll('.kgptalkieDlgBack,.kgptalkieFixBtn,.kgptalkieResAi,.kgptalkieResBar,.kgptalkieChartBox,.kgptalkieViewer,.kgptalkieFRow,.kgptalkiePin,.kgptalkieNbToast').forEach(b => b.remove());
+  document.querySelectorAll('.kgptalkieChartView').forEach(b => b.classList.remove('kgptalkieChartView'));
+  for (const ed of list) { exitCmd(ed); const S = ed.kgptalkieNB; if (!S) continue; try { ed.changeViewZones(a => { S.zones.forEach(id => a.removeZone(id)); if (S.ai) S.ai.forEach(z => a.removeZone(z.id)); }); ed.deltaDecorations(S.decos, []); ed.setHiddenAreas([]); } catch (e) { } ed.kgptalkieNB = null; ed.kgptalkieOpt = ''; }
  };
- const start = () => { barCls(); find(); loop(); W.kgpLook = setInterval(find, 500); };
+ const start = () => { barCls(); find(); loop(); W.kgptalkieLook = setInterval(find, 500); };
  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true }); else start();
- return 'kgp plugin v10 on';
+ return 'kgptalkie plugin v10 on';
 })()

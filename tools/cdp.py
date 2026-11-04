@@ -1,5 +1,5 @@
 """Run JavaScript in MySQL Workbench 26's page through the Chrome DevTools Protocol and print the result.
-Workbench must be started with --remote-debugging-port=9229 (127.0.0.1 only). No keystrokes, no DevTools window.
+Workbench must be started with --remote-debugging-port (tests/testenv.ps1 uses 9230) (127.0.0.1 only). No keystrokes, no DevTools window.
 
     py cdp.py "document.title"           (an expression)
     py cdp.py -f some.js                 (a file holding one expression)
@@ -10,7 +10,7 @@ sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
 import requests, websocket
 
 import os
-PORT = int(os.environ.get("CDP_PORT", "9229"))
+PORT = int(os.environ.get("CDP_PORT", "9230"))
 pages = [t for t in requests.get(f"http://127.0.0.1:{PORT}/json").json() if t["type"] == "page"]
 ws = websocket.create_connection(pages[0]["webSocketDebuggerUrl"], suppress_origin=True, timeout=60)
 n = 0

@@ -23,6 +23,6 @@ get an answer within a week.
   header are checked; other web pages get a refused CORS preflight).
 - The Explorer can only list folders and read Workbench file types (`.sql`, `.mysql`, `.js`, `.ts`,
   `.mysql-notebook`, `.sqlnb`), up to 20 MB each. It never writes or deletes.
-- AI API keys are encrypted with Windows DPAPI for the current user in `%APPDATA%\Workbench KGP\ai.json`. They never
+- AI API keys are encrypted with Windows DPAPI for the current user in `%APPDATA%\Modern MySQL Workbench\ai.json`. They never
   reach the page and are never written into notebooks.
 - MySQL passwords are handled by Workbench itself. The plugin never sees or stores them.

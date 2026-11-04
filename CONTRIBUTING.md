@@ -5,16 +5,16 @@ Thanks for helping. This plugin is small and kept by one person, so a few rules 
 ## Before you start
 
 - **Bugs:** open an issue with the bug report form. Say which MySQL Workbench version you use (Help > About) and
-  attach `%TEMP%\workbench-kgp.log` if there is one.
+  attach `%TEMP%\modern-mysql-workbench.log` if there is one.
 - **Ideas:** open an issue with the feature request form before writing code, so we can agree on it first.
 - **Scope:** the plugin is for MySQL and MySQL Workbench 26 only. Features for other databases or other editors are
   out of scope.
 
 ## Ground rules for changes
 
-- Never change Workbench's own files. Everything goes through `plugin/kgp-plugin.js` and the local server in
-  `package/kgp_workbench.py`.
-- Test in a separate Workbench profile against a throwaway MySQL server (`test-mysql/my.ini`, port 3310, localhost
+- Never change Workbench's own files. Everything goes through `plugin/kgptalkie-plugin.js` and the local server in
+  `package/kgptalkie_workbench.py`.
+- Test in a separate Workbench profile against a throwaway MySQL server (`tests/testenv.ps1`, port 3310, localhost
   only), never in the Workbench and the database you use every day.
 - Never commit passwords, API keys, tokens or your own connection details.
 - Keep the user-facing wording plain and short. Do not use em dashes.

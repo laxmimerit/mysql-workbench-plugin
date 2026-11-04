@@ -4,8 +4,12 @@ package/dist/
 
 # local test instance: Workbench profile and the throwaway MySQL server's data
 test-profile/
-test-mysql/*
-!test-mysql/my.ini
+test-mysql/
+
+# test run output and the test server's AI settings
+tests/results/
+tests/.ai/
+tests/.server.pid
 
 # upstream clone used only for reading Workbench internals (GPL, 64 MB)
 ext/
@@ -13,7 +17,7 @@ ext/
 # old versions and local-only files
 backup/
 screens/
-plugin/kgp-plugin.v*.js
+plugin/*.v*.js
 server.py
 server.v1.py
 *.lnk
