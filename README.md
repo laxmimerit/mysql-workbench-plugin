@@ -11,7 +11,7 @@ A free plugin by KGP Talkie. It runs on top of your installed Workbench and does
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 ![Platform: Windows 10 and 11](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6.svg)
 ![MySQL Workbench 26](https://img.shields.io/badge/MySQL%20Workbench-26.10-00758F.svg)
-![Version 10.0](https://img.shields.io/badge/version-10.0-brightgreen.svg)
+![Version 10.1](https://img.shields.io/badge/version-10.1-brightgreen.svg)
 
 [Install](#install) · [Features](#features) · [How it works](#how-it-works) · [Development](#development) ·
 [Changelog](CHANGELOG.md)
@@ -30,6 +30,7 @@ A free plugin by KGP Talkie. It runs on top of your installed Workbench and does
 - [How it works](#how-it-works)
 - [Privacy and security](#privacy-and-security)
 - [Troubleshooting](#troubleshooting)
+- [FAQ](#faq)
 - [Repository layout](#repository-layout)
 - [Development](#development)
 - [Contributing](#contributing)
@@ -101,34 +102,41 @@ A free plugin by KGP Talkie. It runs on top of your installed Workbench and does
 ## Choosing an AI model
 
 **The plugin does not write the SQL. The model does.** The plugin sends your request and your table and column names
-to the model you pick, and shows what comes back. A weak model gives weak SQL, however good the plugin is.
+to the model you pick, and shows what comes back. If the answer is bad, the model is the reason, not the plugin.
+A stronger model gives better answers.
 
 ### Local models (Ollama, LM Studio)
 
-- **Use a model with at least 8 to 9 billion parameters** (names with 8b, 9b, 12b, 14b, 27b and so on).
-  The AI cell GIF above uses `qwen3.8:27b` on Ollama.
-- **Tiny models (0.5b to 4b) are not good enough for SQL.** They make up table and column names, join the wrong
-  columns, forget `GROUP BY`, and explain SQL that is not the SQL they wrote.
-- **If you use a tiny model and the SQL is wrong, the plugin is not broken. The model is too small.** Please do not
-  report this as a bug. Switch to a bigger model, or to a cloud model, and try again.
-- A bigger model needs more memory. As a rough guide, an 8b to 9b model needs about 6 to 8 GB of free GPU memory
-  (or RAM, and then it is slow). If your PC cannot run one, use a cloud model instead.
+| Model size | For SQL in this plugin |
+|---|---|
+| 0.5b to 4b | **Not good enough.** Makes up tables and columns, joins the wrong columns, explains SQL it did not write. |
+| 8b to 14b | The minimum. Fine for simple queries; mistakes on bigger joins. |
+| 27b to 32b | **Recommended.** Good SQL and good explanations. The AI cell GIF above uses `qwen3.8:27b` on Ollama. |
+
+- **If you use a small model (4b or less) and the SQL is wrong, the plugin is not broken. The model is too small.**
+  Please do not report it as a bug. Use a bigger model, or a cloud model, and try again.
+- Bigger models need more memory. As a rough guide, an 8b model needs about 6 to 8 GB of free GPU memory and a 27b
+  to 32b model about 16 to 24 GB. A model that does not fit in GPU memory runs on the CPU and is very slow. If your
+  PC cannot run a big enough model, use a cloud model instead.
 
 ### Cloud models
 
-If your PC cannot run an 8b or bigger model, use a cloud model. Cloud models are bigger and give better SQL.
+Cloud models are large and give good SQL on any PC.
 
 - **Paid:** OpenAI, Anthropic or OpenRouter. Pick the provider in Configure AI and paste your API key.
-- **Free:** several services give a free API key with daily or monthly limits. For example:
-  - **Google Gemini** (Google AI Studio): pick **Custom (OpenAI-compatible)**, Base URL
-    `https://generativelanguage.googleapis.com/v1beta/openai/`, and your Gemini API key.
-  - **OpenRouter**: pick **OpenRouter** and a model whose name ends in `:free`.
-  - **NVIDIA NIM** (build.nvidia.com): pick **Custom (OpenAI-compatible)**, Base URL
-    `https://integrate.api.nvidia.com/v1`, and your NVIDIA API key.
+- **Free:** several services give a free API key with daily or monthly limits. Some that work with this plugin:
 
-Free offers, their limits and their model names change often. When you install the plugin, search the web for
-"free AI API" or "free LLM API" to see what is on offer at that time. Read each service's terms first: some free tiers
-may keep your requests or use them for training, so do not send private data to them.
+  | Service | In Configure AI |
+  |---|---|
+  | **OpenRouter** (openrouter.ai) | Provider **OpenRouter**, a model whose name ends in `:free`, your OpenRouter key |
+  | **Google Gemini** (aistudio.google.com) | **Custom (OpenAI-compatible)**, Base URL `https://generativelanguage.googleapis.com/v1beta/openai/`, your Gemini API key |
+  | **Groq** (console.groq.com) | **Custom (OpenAI-compatible)**, Base URL `https://api.groq.com/openai/v1`, your Groq API key |
+  | **NVIDIA NIM** (build.nvidia.com) | **Custom (OpenAI-compatible)**, Base URL `https://integrate.api.nvidia.com/v1`, your NVIDIA API key |
+
+Free offers, their limits and their model names change often. When you install the plugin, search Google for
+"free AI API" or "free LLM API" to see what is on offer at that time. Pick the biggest model the free plan allows.
+Read each service's terms first: some free plans may keep your requests or use them for training, so do not send
+private data to them.
 
 ## Requirements
 
@@ -190,9 +198,37 @@ Found a security problem? See [SECURITY.md](SECURITY.md).
 | "MySQL Workbench is already open without the plugin" | Close Workbench (File > Exit), then open Modern MySQL Workbench again. |
 | "MySQL Workbench 26 was not found" | Install MySQL Workbench 26 first. The plugin looks in `%LOCALAPPDATA%\Programs` and `Program Files`. |
 | PDF export fails | PDF export uses Microsoft Edge. Check that Edge is installed. |
-| AI writes wrong SQL, makes up tables or columns | The model is too small. Use a local model with at least 8 to 9 billion parameters, or a cloud model. This is not a plugin bug. See [Choosing an AI model](#choosing-an-ai-model). |
-| AI is very slow | A local model that does not fit in GPU memory runs on the CPU. Use a smaller (but at least 8b) model, or a cloud model. |
+| AI writes wrong SQL, makes up tables or columns | The model is too small. Use a local model of 27b to 32b (8b at the very least), or a cloud model. This is not a plugin bug. See [Choosing an AI model](#choosing-an-ai-model). |
+| AI is very slow | A local model that does not fit in GPU memory runs on the CPU. Use a model that fits, or a cloud model. |
+| A note says "Modern MySQL Workbench is turned off" | MySQL Workbench was updated and changed inside, so the plugin turned itself off to keep Workbench working. Install the latest Modern MySQL Workbench from the [Releases page](https://github.com/laxmimerit/mysql-workbench-plugin/releases). |
 | Something else went wrong | The launcher writes details to `%TEMP%\modern-mysql-workbench.log`. Please attach it to a [bug report](https://github.com/laxmimerit/mysql-workbench-plugin/issues/new/choose). |
+
+## FAQ
+
+**Which AI model should I use?**
+A cloud model, or a local model of 27b to 32b parameters (for example `qwen3.8:27b` on Ollama). 8b is the very
+least. See [Choosing an AI model](#choosing-an-ai-model).
+
+**The AI gave a wrong query or a bad explanation. Is the plugin broken?**
+No. The plugin passes your request and your table and column names to the model and shows its answer. The quality of
+that answer depends only on the model you chose in Configure AI. Small models (4b and below) often get SQL wrong.
+Pick a stronger model and ask again.
+
+**My PC has no strong GPU. Can I still use AI?**
+Yes. Use a cloud model. OpenRouter, Google Gemini, Groq and NVIDIA NIM have free plans, and a Google search for
+"free AI API" shows what else is on offer today. Paid providers (OpenAI, Anthropic, OpenRouter) work too.
+
+**What data goes to the AI?**
+Your request, the cell's SQL and the table and column names it needs. Result rows only when you agree, or when you
+turn that on. With a local model (Ollama, LM Studio) nothing leaves your PC.
+
+**Does the plugin change MySQL Workbench?**
+No. No Workbench file is changed. Plain MySQL Workbench still opens from its own shortcut, exactly as before.
+
+**What happens when MySQL Workbench updates itself?**
+If the update changes the parts of Workbench the plugin builds on, the plugin turns itself off, takes out everything
+it added and shows a short note. Workbench keeps working as normal. Install the latest Modern MySQL Workbench to get
+the notebook features back.
 
 ## Repository layout
 

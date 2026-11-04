@@ -1,5 +1,15 @@
 # Changelog
 
+## 10.1
+
+- Version guard. MySQL Workbench updates itself, and an update can change the parts of Workbench the plugin builds
+  on. The plugin now checks for them before it touches a notebook or a SQL workspace. When something is missing, or
+  the plugin keeps failing, it turns itself off cleanly: everything it added is taken out, the editor settings go
+  back to Workbench's own, and a short note says that Workbench works as normal and that a newer plugin is needed.
+  It stays off for that Workbench and plugin version only, so the next update of either tries again.
+- The plugin server tells the plugin which Workbench version is running.
+- README: a guide to choosing an AI model, an FAQ, a logo and GIFs.
+
 ## 10.0
 
 - New name: **Modern MySQL Workbench** (shortcut, installer `Modern-MySQL-Workbench-Setup.exe`, install folder and

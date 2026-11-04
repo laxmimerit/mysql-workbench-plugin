@@ -14,13 +14,13 @@ The server binds 127.0.0.1 only. /kgptalkie/fs/list|read|home feed the Explorer 
 pages (Origin http://127.0.0.1:<port> or app://renderer), only with the X-KGPTalkie header (any other web page needs a CORS
 preflight, which is refused) and only for Host 127.0.0.1:<port> (no DNS rebinding).
 """
-import argparse, base64, ctypes, http.server, json, os, pathlib, shutil, socketserver, subprocess, sys, tempfile, threading, time, traceback
+import argparse, base64, ctypes, http.server, json, os, pathlib, re, shutil, socketserver, subprocess, sys, tempfile, threading, time, traceback
 import urllib.error, urllib.request, winreg
 from urllib.parse import parse_qs, urlsplit
 
 APP = "Modern MySQL Workbench"
 EXE_NAME = "Modern MySQL Workbench.exe"
-VERSION = "10.0"
+VERSION = "10.1"
 PORT = 9241
 LOCAL = os.environ["LOCALAPPDATA"]
 DEFAULT_TARGET = os.path.join(LOCAL, "Programs", "Modern MySQL Workbench")
@@ -68,6 +68,16 @@ def find_wb():
         if os.path.isfile(exe) and os.path.isfile(os.path.join(front, "index.html")):
             return exe, front
     return None, None
+
+
+def wb_version(front):
+    """Workbench's version from resources/app/package.json, for the plugin's version guard. '' when unreadable."""
+    try:
+        with open(os.path.join(front, "..", "..", "package.json"), encoding="utf-8") as f:
+            v = str(json.load(f).get("version", ""))
+    except (OSError, ValueError, AttributeError):
+        return ""
+    return v if re.fullmatch(r"[0-9A-Za-z.+-]{1,40}", v) else ""
 
 
 def find_edge():
@@ -476,7 +486,8 @@ def serve(port):
                     return
                 return self._send(403, '{"error":"forbidden"}')
             if p in ("/", "/index.html"):
-                html = open(os.path.join(front, "index.html"), "rb").read().replace(b"</head>", tag, 1)
+                meta = f'<meta name="kgptalkie-wb-version" content="{wb_version(front)}">\n'.encode("ascii")
+                html = open(os.path.join(front, "index.html"), "rb").read().replace(b"</head>", meta + tag, 1)
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.send_header("Content-Length", str(len(html)))

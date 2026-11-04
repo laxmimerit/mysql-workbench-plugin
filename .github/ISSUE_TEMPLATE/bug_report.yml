@@ -29,7 +29,7 @@ body:
     attributes:
       label: Plugin version
       description: Settings > Apps > Modern MySQL Workbench shows it.
-      placeholder: "10.0"
+      placeholder: "10.1"
     validations:
       required: true
   - type: input
@@ -50,8 +50,8 @@ body:
     attributes:
       label: AI provider and model (only for AI problems)
       description: |
-        For example "Ollama, qwen3.8:27b". Wrong SQL from a model smaller than 8b is the model, not a plugin bug;
-        please try a bigger model or a cloud model first (README, "Choosing an AI model").
+        For example "Ollama, qwen3.8:27b". A wrong answer from a small model (4b or less) is the model, not a plugin
+        bug; please try a 27b or bigger model, or a cloud model, first (README, "Choosing an AI model").
       placeholder: "Ollama, qwen3.8:27b"
   - type: dropdown
     id: os

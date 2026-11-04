@@ -1,5 +1,7 @@
-/* Modern MySQL Workbench plugin v10 (2026-11-05) by KGP Talkie, for MySQL Workbench 26.10.0.
+/* Modern MySQL Workbench plugin v10.1 (2026-11-05) by KGP Talkie, for MySQL Workbench 26.10.0.
    Copyright 2026 KGP Talkie (Laxmi Kant). Licensed under the Apache License 2.0; see LICENSE and NOTICE.
+   v10.1: version guard. When a Workbench update changes the internals the plugin needs, it turns itself off
+   cleanly and says so (see "version guard" below).
    v10: MySQL keywords in capitals as you type (word lists generated from sql-formatter, see tools/gen-keywords.mjs),
    keyword case for autocomplete (UPPERCASE / lowercase / as typed), "Connection · MySQL x.y.z" on the notebook bar. Loaded by package/kgptalkie_workbench.py through Workbench's own
    --renderer-url option; no Workbench file is changed.
@@ -38,6 +40,74 @@
  const MW = 104, BX = 70;           // gutter: focus bar 3-6, play 10-30, count 30-64 | box from 70, line numbers to 96, code from 104
  const C = { bg: '#F7F7F7', bd: '#E3E3E3', focus: '#3B82C4', count: '#8A8A8A', ln: '#A8A8A8', lnF: '#6B6B6B' };
  const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { } } };
+
+ /* ---------- version guard ----------
+    The plugin leans on Workbench internals (its Preact components, the notebook editor, the SQL runner), and a
+    Workbench update can change them. Before it touches a notebook or a SQL workspace it checks that what it needs is
+    there. When something is missing, or the plugin keeps failing, turnOff() takes out everything the plugin added,
+    puts the editor options back and leaves plain Workbench with a short note. It stays off for that Workbench and
+    plugin version, so a later Workbench or plugin update tries again. The server puts the Workbench version (from
+    resources/app/package.json) in <meta name="kgptalkie-wb-version">. */
+ const VERSION = '10.1', TESTED_WB = ['26.10.0'], OFF_KEY = 'kgptalkieOff';
+ const wbVer = (() => { const m = document.querySelector('meta[name="kgptalkie-wb-version"]'); return m ? m.content : ''; })();
+ const offFlag = () => { try { const f = JSON.parse(store.get(OFF_KEY, 'null')); return f && f.wb === wbVer && f.plugin === VERSION ? f : null; } catch (e) { return null; } };
+ const offNote = f => {
+  const show = () => {
+   if (f.seen || document.getElementById('kgptalkieOffNote') || !document.body) return;
+   const n = document.createElement('div'); n.id = 'kgptalkieOffNote';
+   n.style.cssText = 'position:fixed;right:18px;bottom:18px;z-index:2147483000;width:380px;box-sizing:border-box;padding:14px 16px 12px;'
+    + 'background:#fff;color:#1f1f1f;border:1px solid #d0d0d0;border-left:4px solid #E8A33D;border-radius:6px;box-shadow:0 6px 24px rgba(0,0,0,.18);'
+    + 'font:13px/1.45 "Segoe UI",system-ui,sans-serif';
+   const el = (tag, text, css) => { const e = document.createElement(tag); e.textContent = text; if (css) e.style.cssText = css; n.appendChild(e); return e; };
+   el('div', 'Modern MySQL Workbench is turned off', 'font-weight:600;font-size:14px;margin-bottom:6px');
+   el('div', `This MySQL Workbench${wbVer ? ' (' + wbVer + ')' : ''} has changed inside in a way this plugin version (${VERSION}, made for Workbench ${TESTED_WB.join(', ')}) does not know, so the plugin turned itself off. MySQL Workbench works as normal.`);
+   el('div', 'To get the notebook features back, install the latest Modern MySQL Workbench from github.com/laxmimerit/mysql-workbench-plugin/releases.', 'margin-top:6px');
+   el('div', 'Reason: ' + f.reason, 'margin-top:6px;color:#6b6b6b;font-size:12px');
+   const b = el('button', 'OK', 'margin-top:10px;float:right;padding:4px 18px;border:0;border-radius:3px;background:#005FB8;color:#fff;font:inherit;cursor:pointer');
+   el('div', '', 'clear:both');
+   b.addEventListener('click', () => { n.remove(); f.seen = true; store.set(OFF_KEY, JSON.stringify(f)); });
+   document.body.appendChild(n);
+  };
+  if (document.body) show(); else document.addEventListener('DOMContentLoaded', show, { once: true });
+ };
+ const guardBase = { version: VERSION, wb: wbVer, tested: TESTED_WB.includes(wbVer), reset() { try { localStorage.removeItem(OFF_KEY); } catch (e) { } } };
+ const off0 = offFlag();
+ if (off0) { W.kgptalkieOff = off0; W.kgptalkieTick = () => { }; W.kgptalkieGuard = { ...guardBase, off: () => true }; offNote(off0); return 'kgptalkie plugin v' + VERSION + ' off: ' + off0.reason; }
+ W.kgptalkieOff = null;
+ { const n = document.getElementById('kgptalkieOffNote'); if (n) n.remove(); }       // on again: an old note is no longer true
+ let guardOff = false, errs = [], noRootAt = 0, noWsAt = 0;
+ const turnOff = reason => {
+  if (guardOff) return; guardOff = true;
+  clearInterval(W.kgptalkieLook); cancelAnimationFrame(W.kgptalkieRaf); W.kgptalkieLook = 0; W.kgptalkieRaf = 0;
+  try { if (W.kgptalkieTeardown) W.kgptalkieTeardown(); } catch (e) { }
+  W.kgptalkieTeardown = null; W.kgptalkieTick = () => { };
+  for (const ed of list) { try { if (ed.kgptalkieOpt0) ed.updateOptions(ed.kgptalkieOpt0); } catch (e) { } }
+  ['kgptalkieHideBar', 'kgptalkieDyn'].forEach(id => { const s = document.getElementById(id); if (s) s.remove(); });
+  document.querySelectorAll('[class*="kgptalkie"]').forEach(e => [...e.classList].filter(c => c.startsWith('kgptalkie')).forEach(c => e.classList.remove(c)));
+  try { if (W.kgptalkieHostHooked && W.electronHost && typeof W.onNativeMessage === 'function') { W.electronHost.setMessageHandler(m => W.onNativeMessage(m)); W.kgptalkieHostHooked = 0; } } catch (e) { }
+  const f = { wb: wbVer, plugin: VERSION, reason: String(reason).slice(0, 300), at: new Date().toISOString() };
+  store.set(OFF_KEY, JSON.stringify(f)); W.kgptalkieOff = f; offNote(f);
+ };
+ /* an error now and then is reported in kgptalkieErr; the same failure on every frame turns the plugin off */
+ const failed = e => {
+  W.kgptalkieErr = String(e && e.stack || e); const now = Date.now(); errs.push(now); errs = errs.filter(t => now - t < 5000);
+  if (errs.length >= 40) turnOff('The plugin kept failing: ' + String(e && e.message || e).slice(0, 160));
+ };
+ /* what a notebook editor must have; returns the missing parts */
+ const nbProbe = ed => {
+  const miss = [], ce = ed.kgptalkieCE, m = ed.getModel(), ec = m && m.executionContexts, x = ec && Array.isArray(ec.content) && ec.content[0];
+  if (!ce) miss.push('editor component');
+  else {
+   ['executeSelectedOrAll', 'removeAllResults', 'setExecutionBlockLanguageAndText', 'updateExecutionContexts'].forEach(k => { if (typeof ce[k] !== 'function') miss.push('editor.' + k); });
+   if (!(ce.props && typeof ce.props.createResultPresentation === 'function')) miss.push('editor.props.createResultPresentation');
+  }
+  if (!ec || !Array.isArray(ec.content)) miss.push('model.executionContexts');
+  else ['insertContext', 'removeContexts', 'contextFromPosition'].forEach(k => { if (typeof ec[k] !== 'function') miss.push('executionContexts.' + k); });
+  if (x && !(typeof x.startLine === 'number' && typeof x.endLine === 'number' && typeof x.movePosition === 'function')) miss.push('execution context lines');
+  ['setHiddenAreas', 'changeViewZones', 'deltaDecorations', 'getRawOptions'].forEach(k => { if (typeof ed[k] !== 'function') miss.push('monaco.' + k); });
+  return miss;
+ };
+
  const P = W.kgptalkiePrefs = { suggest: store.get('kgptalkieSuggest', '1') === '1', bar: store.get('kgptalkieTitleOpen', '0') === '1' };
  const barCls = () => { if (document.body) document.body.classList.toggle('kgptalkieTitleOpen', P.bar); }; barCls();   // body may not exist yet when loaded from <head>
  const css = `
@@ -1159,6 +1229,7 @@ body.kgptalkieActOn #documentSideBar .accordionContent > .sashContainer{display:
  const workspaces = () => { const out = []; const walk = (v, d) => { if (!v || d > 90) return; const c = v.__c; if (c && typeof c.runSQLCode === 'function' && c.sqlQueryExecutor) out.push(c); for (const k of v.__k || []) walk(k, d + 1); }; const r = document.getElementById('root'); if (r) walk(r.__k, 0); return out; };
  const hookWs = ws => {
   const q = ws.sqlQueryExecutor; if (!q || q.kgptalkieHook === AC) return;
+  if (typeof (q.kgptalkieRun0 || q.runSQLCode) !== 'function' || typeof (q.kgptalkieExec0 || q.executeQuery) !== 'function') { turnOff('The SQL runner has changed: sqlQueryExecutor.runSQLCode or executeQuery is missing.'); return; }
   const run0 = q.kgptalkieRun0 || q.runSQLCode, exec0 = q.kgptalkieExec0 || q.executeQuery;
   q.kgptalkieRun0 = run0; q.kgptalkieExec0 = exec0; q.kgptalkieHook = AC;
   q.executeQuery = (e, idx, page, limit, opts, text, ...rest) => exec0(e, idx, page, limit, opts, e && e.kgptalkieVals ? substVars(text, e.kgptalkieVals) : text, ...rest);
@@ -2050,19 +2121,26 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
   const nb = isNB(ed); const v = 'v5' + (P.suggest ? 1 : 0); if (ed.kgptalkieOpt === v) return; ed.kgptalkieOpt = v;
   const o = { lineHeight: nb ? NB : SC, padding: { top: nb ? 0 : 14, bottom: 14 }, quickSuggestions: P.suggest ? { other: true, comments: false, strings: false } : false, suggestOnTriggerCharacters: P.suggest, wordBasedSuggestions: 'off' };
   if (nb) Object.assign(o, { lineNumbers: 'off', lineDecorationsWidth: MW, glyphMargin: false, folding: false, renderLineHighlight: 'none' });
+  if (!ed.kgptalkieOpt0) { const r = ed.getRawOptions() || {}; ed.kgptalkieOpt0 = {}; for (const k of ['lineHeight', 'padding', 'quickSuggestions', 'suggestOnTriggerCharacters', 'wordBasedSuggestions', 'lineNumbers', 'lineDecorationsWidth', 'glyphMargin', 'folding', 'renderLineHighlight']) ed.kgptalkieOpt0[k] = r[k]; }   // for turnOff()
   ed.updateOptions(o);
  };
  const find = () => {
+  if (guardOff) return;
   const root = [...document.querySelectorAll('*')].find(e => e.__k); const out = [];
+  if (!root) { noRootAt = noRootAt || Date.now(); if (Date.now() - noRootAt > 20000) turnOff('The app is no longer built the way the plugin expects (no Preact tree after 20 s).'); return; }
+  noRootAt = 0;
   let setEd = null;
   const walk = v => { if (!v) return; const c = v.__c; if (c && c.editor && typeof c.editor.updateOptions === 'function') { out.push(c.editor); c.editor.kgptalkieCE = c; } if (c && c.state && Array.isArray(c.state.settingsTree) && typeof c.runFilterTimer === 'function') setEd = c; (v.__k || []).forEach(walk); };
   if (root) walk(root.__k); list = out;
   const sd = document.getElementById('settingsDialog'); if (sd && sd.__k && !setEd) walk(sd.__k);   // Settings is its own render root (a portal)
-  if (setEd) try { ensureSetting(setEd); } catch (e) { W.kgptalkieErr = String(e && e.stack || e); }
+  if (setEd) try { ensureSetting(setEd); } catch (e) { failed(e); }
   ensureChip();
-  try { ensureActivity(); } catch (e) { W.kgptalkieErr = String(e && e.stack || e); }
+  try { ensureActivity(); } catch (e) { failed(e); }
+  /* a notebook without the SQL workspace around it: variables, confirms and the timeout would silently not work */
+  if (list.some(isNB) && !workspaces().length) { noWsAt = noWsAt || Date.now(); if (Date.now() - noWsAt > 8000) { turnOff('The SQL workspace has changed: no runSQLCode found next to an open notebook.'); return; } } else noWsAt = 0;
   for (const ed of list) {
    const dom = ed.getDomNode(); if (!dom) continue; const nb = isNB(ed);
+   if (nb) { const miss = nbProbe(ed); if (miss.length) { turnOff('The notebook editor has changed: ' + miss.join(', ') + ' missing.'); return; } }
    applyOpts(ed);
    if (nb) ensureNbBar(ed);
    if (dom.kgptalkieAC === AC) continue;
@@ -2232,9 +2310,9 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
   }
  };
 
- const tick = () => { try { hookAll(); } catch (e) { W.kgptalkieErr = String(e && e.stack || e); } for (const ed of list) { try { fit(ed); if (isNB(ed)) { paint(ed); paintAi(ed); resultButtons(ed); } } catch (e) { W.kgptalkieErr = String(e && e.stack || e); } } };
+ const tick = () => { if (guardOff) return; try { hookAll(); } catch (e) { failed(e); } for (const ed of list) { if (guardOff) return; try { fit(ed); if (isNB(ed)) { paint(ed); paintAi(ed); resultButtons(ed); } } catch (e) { failed(e); } } };
  W.kgptalkieTick = tick;                                   // tests in a hidden window (no animation frames) call this
- const loop = () => { tick(); W.kgptalkieRaf = requestAnimationFrame(loop); };
+ const loop = () => { if (guardOff) return; tick(); if (!guardOff) W.kgptalkieRaf = requestAnimationFrame(loop); };
  W.kgptalkieTeardown = () => {
   AC.abort(); DISP.forEach(d => { try { d.dispose(); } catch (e) { } }); closeMenu(); try { unhookWs(); } catch (e) { } try { unhookTreeMenus(); } catch (e) { } try { unhookCompletion(); } catch (e) { }
   document.querySelectorAll('.kgptalkieNbBar,.kgptalkieChip,.kgptalkieAct,.kgptalkieExp').forEach(b => b.remove());
@@ -2243,7 +2321,8 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
   document.querySelectorAll('.kgptalkieChartView').forEach(b => b.classList.remove('kgptalkieChartView'));
   for (const ed of list) { exitCmd(ed); const S = ed.kgptalkieNB; if (!S) continue; try { ed.changeViewZones(a => { S.zones.forEach(id => a.removeZone(id)); if (S.ai) S.ai.forEach(z => a.removeZone(z.id)); }); ed.deltaDecorations(S.decos, []); ed.setHiddenAreas([]); } catch (e) { } ed.kgptalkieNB = null; ed.kgptalkieOpt = ''; }
  };
- const start = () => { barCls(); find(); loop(); W.kgptalkieLook = setInterval(find, 500); };
+ W.kgptalkieGuard = { ...guardBase, off: () => guardOff, probe: nbProbe, turnOff };    // tests/guard_test.py
+ const start = () => { if (guardOff) return; barCls(); find(); loop(); if (!guardOff) W.kgptalkieLook = setInterval(find, 500); };
  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true }); else start();
- return 'kgptalkie plugin v10 on';
+ return 'kgptalkie plugin v' + VERSION + ' on';
 })()

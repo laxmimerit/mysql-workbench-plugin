@@ -11,6 +11,11 @@
   await A.addBelow(ed, ctxs().length - 1, 'mysql'); const k = ctxs().length - 1; const x = ctxs()[k];
   ed.executeEdits('t', [{ range: { startLineNumber: x.startLine, startColumn: 1, endLineNumber: x.endLine, endColumn: m.getLineMaxColumn(x.endLine) }, text: 'SELECT month, region, revenue, orders, note FROM kgptalkie_test.sales ORDER BY month' }]);
   const j = A.run(ed, k); await A.done(j, 20000);
+  // a hidden window does not scroll or paint by itself, and Monaco keeps result zones below the fold hidden
+  ed.setScrollTop(ed.getTopForLineNumber(x.startLine) - 20); ed.render(true); await sleep(200); window.kgptalkieTick();
+  // the table view (results-chart, run earlier on the same SQL, may have left this result in chart view)
+  for (let n = 0; n < 30 && !x.presentation.renderTarget.querySelector('.kgptalkieResBar'); n++) { await sleep(200); window.kgptalkieTick(); }
+  if (x.presentation.renderTarget.classList.contains('kgptalkieChartView')) { x.presentation.renderTarget.querySelector('.kgptalkieResBar [data-r=table]').dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true })); await sleep(200); window.kgptalkieTick(); }
   for (let n = 0; n < 30 && !x.presentation.renderTarget.querySelector('.kgptalkieResBar'); n++) await sleep(200);
   const rt = x.presentation.renderTarget, out = {};
   out.bar = [...rt.querySelectorAll('.kgptalkieResBar button')].map(b => b.dataset.r).join(',');
@@ -24,7 +29,7 @@
   inp.value = ''; inp.dispatchEvent(new Event('input'));
   // column filters through the button
   const fire = (el) => el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0 }));
-  fire(rt.querySelector('[data-r=filter]')); await sleep(400);
+  fire(rt.querySelector('[data-r=filter]')); await sleep(300); window.kgptalkieTick(); await sleep(100);
   const fr = rt.querySelector('.kgptalkieFRow'); out.filterRow = fr ? [...fr.querySelectorAll('input')].map(i => i.placeholder).join(' / ') : null;
   if (fr) { const rev = fr.querySelector('input[data-f="2"]'); rev.value = '1000..1800'; rev.dispatchEvent(new Event('input', { bubbles: true })); await sleep(200); out.range = t.getDataCount('active');
     rev.value = '>1500'; rev.dispatchEvent(new Event('input', { bubbles: true })); await sleep(200); out.gt = t.getDataCount('active');

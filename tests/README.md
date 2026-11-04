@@ -31,6 +31,7 @@ powershell -File tests/testenv.ps1 start -Visible
 py tests/connect.py
 py tests/run.py all
 py tests/undo_case_test.py
+py tests/guard_test.py
 py tests/typing_test.py "select name from kgptalkie_test.students where city is not null"
 ```
 
@@ -48,6 +49,7 @@ good run.
 | `run-safety` | Risky statement detection, confirms, `{{variables}}`, Production and Read-only tags, query timeout |
 | `export-import`, `export-html-chart`, `import` | HTML, Markdown, `.sqlnb` and `.sql` export and import, charts in HTML |
 | `schema-tree` | Select Top 100 and Describe in Notebook on the schema tree |
+| `guard_test.py` | The version guard: breaks a notebook editor method and the SQL runner on purpose, checks that the plugin turns itself off without a trace, that Workbench still runs SQL, that it stays off until the version changes, and that it comes back |
 | `sample-notebook`, `sample-results` | The sample notebook from Get Started, run from top to bottom |
 | `ai`, `ai-cards` | Explain, Optimize, Fix with AI, AI cells. Need a model in Configure AI (a local Ollama model works) |
 
