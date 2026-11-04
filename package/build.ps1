@@ -8,6 +8,7 @@ py (Join-Path $here 'make_icon.py')
 py -m PyInstaller --noconfirm --clean --onefile --noconsole --name 'Modern-MySQL-Workbench-Setup' `
   --icon (Join-Path $here 'icon.ico') `
   --add-data "$plugin;plugin" `
+  --add-data "$(Join-Path $here 'badge.png');." `
   --distpath (Join-Path $here 'dist') --workpath (Join-Path $work 'build') --specpath $work `
   (Join-Path $here 'kgptalkie_workbench.py')
 if ($LASTEXITCODE) { throw "PyInstaller failed ($LASTEXITCODE)" }

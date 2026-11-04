@@ -14,13 +14,13 @@ The server binds 127.0.0.1 only. /kgptalkie/fs/list|read|home feed the Explorer 
 pages (Origin http://127.0.0.1:<port> or app://renderer), only with the X-KGPTalkie header (any other web page needs a CORS
 preflight, which is refused) and only for Host 127.0.0.1:<port> (no DNS rebinding).
 """
-import argparse, base64, ctypes, http.server, json, os, pathlib, re, shutil, socketserver, subprocess, sys, tempfile, threading, time, traceback
+import argparse, base64, ctypes, http.server, json, os, pathlib, re, shutil, socketserver, struct, subprocess, sys, tempfile, threading, time, traceback
 import urllib.error, urllib.request, winreg
 from urllib.parse import parse_qs, urlsplit
 
 APP = "Modern MySQL Workbench"
 EXE_NAME = "Modern MySQL Workbench.exe"
-VERSION = "10.1"
+VERSION = "26.10.0.1"            # MySQL Workbench version it is made for, then our release
 PORT = 9241
 LOCAL = os.environ["LOCALAPPDATA"]
 DEFAULT_TARGET = os.path.join(LOCAL, "Programs", "Modern MySQL Workbench")
@@ -613,10 +613,79 @@ def shell_folder(csidl):
     return buf.value
 
 
-def make_lnk(lnk, target_exe, workdir):
+BADGE_FRAC = 0.35                                  # badge width as a share of the icon width
+PNG_SIG = b"\x89PNG\r\n\x1a\n"
+
+
+def wb_icon_png(wb_root):
+    """The largest PNG picture in MySQL Workbench's own app-icon.ico (or its app-icon.png), as bytes. None if missing."""
+    img = os.path.join(wb_root, "resources", "app", "images")
+    try:
+        with open(os.path.join(img, "app-icon.ico"), "rb") as f:
+            d = f.read()
+        best = None
+        for i in range(struct.unpack_from("<H", d, 4)[0]):
+            w, size, off = d[6 + 16 * i] or 256, *struct.unpack_from("<II", d, 6 + 16 * i + 8)
+            if d[off:off + 8] == PNG_SIG and (not best or w > best[0]):
+                best = (w, d[off:off + size])
+        if best:
+            return best[1]
+    except (OSError, struct.error, IndexError):
+        pass
+    try:
+        with open(os.path.join(img, "app-icon.png"), "rb") as f:
+            d = f.read()
+        return d if d[:8] == PNG_SIG else None
+    except OSError:
+        return None
+
+
+def make_shortcut_icon(target):
+    """The shortcut icon: this PC's own MySQL Workbench icon with our badge in the corner, saved as shortcut.ico in the
+    install folder.
+    Built here from the user's installed Workbench, so no Workbench artwork ships with the plugin. None when it cannot
+    be made (no Workbench, unknown icon format); the shortcut then uses the exe's own (teal) icon."""
+    exe = find_wb()[0]
+    badge = os.path.join(BUNDLE, "badge.png")
+    src = wb_icon_png(os.path.dirname(exe)) if exe else None
+    if not src or not os.path.isfile(badge):
+        return None
     q = lambda s: s.replace("'", "''")
+    sizes = (256, 48, 32, 24, 16)
+    with tempfile.TemporaryDirectory() as tmp:
+        with open(os.path.join(tmp, "wb.png"), "wb") as f:
+            f.write(src)
+        ps = ("$ErrorActionPreference='Stop';Add-Type -AssemblyName System.Drawing;"
+              f"$wb=[Drawing.Image]::FromFile('{q(os.path.join(tmp, 'wb.png'))}');$bd=[Drawing.Image]::FromFile('{q(badge)}');"
+              "$at=New-Object Drawing.Imaging.ImageAttributes;$at.SetWrapMode([Drawing.Drawing2D.WrapMode]::TileFlipXY);"
+              f"foreach($n in {','.join(map(str, sizes))}){{$bm=New-Object Drawing.Bitmap $n,$n;$g=[Drawing.Graphics]::FromImage($bm);"
+              "$g.InterpolationMode='HighQualityBicubic';$g.PixelOffsetMode='HighQuality';$g.CompositingQuality='HighQuality';"
+              "$g.DrawImage($wb,(New-Object Drawing.Rectangle 0,0,$n,$n),0,0,$wb.Width,$wb.Height,'Pixel',$at);"
+              f"$w=[math]::Round($n*{BADGE_FRAC});$h=[math]::Round($w*$bd.Height/$bd.Width);"
+              "$g.DrawImage($bd,(New-Object Drawing.Rectangle ($n-$w),($n-$h),$w,$h),0,0,$bd.Width,$bd.Height,'Pixel',$at);"
+              f"$g.Dispose();$bm.Save((Join-Path '{q(tmp)}' ([string]$n+'.png')),[Drawing.Imaging.ImageFormat]::Png);$bm.Dispose()}}"
+              "$wb.Dispose();$bd.Dispose()")
+        try:
+            subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps], creationflags=NO_WINDOW,
+                           capture_output=True, timeout=60, check=True)
+            pngs = [open(os.path.join(tmp, f"{n}.png"), "rb").read() for n in sizes]
+        except (OSError, subprocess.SubprocessError):
+            return None
+    out = os.path.join(target, "shortcut.ico")
+    head, off = struct.pack("<HHH", 0, 1, len(sizes)), 6 + 16 * len(sizes)
+    for n, png in zip(sizes, pngs):
+        head += struct.pack("<BBBBHHII", n % 256, n % 256, 0, 0, 1, 32, len(png), off)
+        off += len(png)
+    with open(out, "wb") as f:
+        f.write(head + b"".join(pngs))
+    return out
+
+
+def make_lnk(lnk, target_exe, workdir, icon=None):
+    q = lambda s: s.replace("'", "''")
+    icon_loc = f"{icon},0" if icon else f"{target_exe},0"
     ps = (f"$s=(New-Object -ComObject WScript.Shell).CreateShortcut('{q(lnk)}');$s.TargetPath='{q(target_exe)}';"
-          f"$s.WorkingDirectory='{q(workdir)}';$s.IconLocation='{q(target_exe)},0';"
+          f"$s.WorkingDirectory='{q(workdir)}';$s.IconLocation='{q(icon_loc)}';"
           "$s.Description='MySQL Workbench with the KGP Talkie notebook plugin';$s.Save()")
     subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps], creationflags=NO_WINDOW,
                    capture_output=True, timeout=60, check=True)
@@ -647,15 +716,16 @@ def install(target, shortcuts):
     shutil.copy2(os.path.join(bundled_plugin(), "kgptalkie-plugin.js"), os.path.join(target, "plugin", "kgptalkie-plugin.js"))
     links = []
     if shortcuts:
+        icon = make_shortcut_icon(target)
         for folder in (shell_folder(0x10), shell_folder(0x02)):        # Desktop, Start menu > Programs
             if folder:
                 lnk = os.path.join(folder, f"{APP}.lnk")
-                make_lnk(lnk, dst, target)
+                make_lnk(lnk, dst, target, icon)
                 links.append(lnk)
         size_kb = sum(os.path.getsize(os.path.join(dp, f)) for dp, _, fs in os.walk(target) for f in fs) // 1024
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER, UNINST_KEY) as k:
             for name, val in (("DisplayName", APP), ("DisplayVersion", VERSION), ("Publisher", "KGP Talkie"),
-                              ("DisplayIcon", dst), ("InstallLocation", target),
+                              ("DisplayIcon", icon or dst), ("InstallLocation", target),
                               ("UninstallString", f'"{dst}" --uninstall'),
                               ("QuietUninstallString", f'"{dst}" --uninstall --quiet')):
                 winreg.SetValueEx(k, name, 0, winreg.REG_SZ, val)
@@ -684,11 +754,14 @@ def uninstall():
             winreg.DeleteKey(winreg.HKEY_CURRENT_USER, UNINST_KEY)
         except OSError:
             pass
-    # Only our own files, after this process has exited (a running exe cannot delete itself).
+    # Only our own files, after this process has exited (a running exe cannot delete itself). Output goes to nul: a
+    # detached cmd has no console, and an error message (a file that is not there) would stop the rest of the line.
     d = HOME_DIR
-    cmd = (f'ping -n 4 127.0.0.1 >nul & del /f /q "{os.path.join(d, EXE_NAME)}" & rmdir /s /q "{os.path.join(d, "plugin")}"'
-           f' & del /f /q "{INFO}" & rmdir "{d}"')
-    subprocess.Popen(f'cmd /s /c "{cmd}"', creationflags=NO_WINDOW | DETACHED, close_fds=True)
+    cmd = (f'ping -n 4 127.0.0.1 >nul 2>&1 & del /f /q "{os.path.join(d, EXE_NAME)}" >nul 2>&1'
+           f' & rmdir /s /q "{os.path.join(d, "plugin")}" >nul 2>&1 & del /f /q "{os.path.join(d, "shortcut.ico")}" >nul 2>&1'
+           f' & del /f /q "{INFO}" >nul 2>&1 & rmdir "{d}" >nul 2>&1')
+    subprocess.Popen(f'cmd /s /c "{cmd}"', creationflags=NO_WINDOW | DETACHED, close_fds=True,
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     box(f"{APP} was removed.")
     return 0
 

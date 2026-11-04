@@ -1,8 +1,9 @@
-/* Modern MySQL Workbench plugin v10.1 (2026-11-05) by KGP Talkie, for MySQL Workbench 26.10.0.
+/* Modern MySQL Workbench plugin 26.10.0.1 (2026-11-05) by KGP Talkie, for MySQL Workbench 26.10.0.
+   Version: the first three numbers are the MySQL Workbench version it is made for, the last is our release.
    Copyright 2026 KGP Talkie (Laxmi Kant). Licensed under the Apache License 2.0; see LICENSE and NOTICE.
-   v10.1: version guard. When a Workbench update changes the internals the plugin needs, it turns itself off
+   26.10.0.1: version guard. When a Workbench update changes the internals the plugin needs, it turns itself off
    cleanly and says so (see "version guard" below).
-   v10: MySQL keywords in capitals as you type (word lists generated from sql-formatter, see tools/gen-keywords.mjs),
+   Build 10: MySQL keywords in capitals as you type (word lists generated from sql-formatter, see tools/gen-keywords.mjs),
    keyword case for autocomplete (UPPERCASE / lowercase / as typed), "Connection · MySQL x.y.z" on the notebook bar. Loaded by package/kgptalkie_workbench.py through Workbench's own
    --renderer-url option; no Workbench file is changed.
    - Activity bar (VS Code): Explorer (a folder you open; .sql/.mysql/.js/.ts/.mysql-notebook open in Workbench),
@@ -48,7 +49,7 @@
     puts the editor options back and leaves plain Workbench with a short note. It stays off for that Workbench and
     plugin version, so a later Workbench or plugin update tries again. The server puts the Workbench version (from
     resources/app/package.json) in <meta name="kgptalkie-wb-version">. */
- const VERSION = '10.1', TESTED_WB = ['26.10.0'], OFF_KEY = 'kgptalkieOff';
+ const VERSION = '26.10.0.1', TESTED_WB = ['26.10.0'], OFF_KEY = 'kgptalkieOff';
  const wbVer = (() => { const m = document.querySelector('meta[name="kgptalkie-wb-version"]'); return m ? m.content : ''; })();
  const offFlag = () => { try { const f = JSON.parse(store.get(OFF_KEY, 'null')); return f && f.wb === wbVer && f.plugin === VERSION ? f : null; } catch (e) { return null; } };
  const offNote = f => {

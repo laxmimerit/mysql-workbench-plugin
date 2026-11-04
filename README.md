@@ -11,7 +11,7 @@ A free plugin by KGP Talkie. It runs on top of your installed Workbench and does
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 ![Platform: Windows 10 and 11](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6.svg)
 ![MySQL Workbench 26](https://img.shields.io/badge/MySQL%20Workbench-26.10-00758F.svg)
-![Version 10.1](https://img.shields.io/badge/version-10.1-brightgreen.svg)
+![Version 26.10.0.1](https://img.shields.io/badge/version-26.10.0.1-brightgreen.svg)
 
 [Install](#install) · [Features](#features) · [How it works](#how-it-works) · [Development](#development) ·
 [Changelog](CHANGELOG.md)
@@ -25,6 +25,7 @@ A free plugin by KGP Talkie. It runs on top of your installed Workbench and does
 - [Features](#features)
 - [Choosing an AI model](#choosing-an-ai-model)
 - [Requirements](#requirements)
+- [Versions](#versions)
 - [Install](#install)
 - [Update and uninstall](#update-and-uninstall)
 - [How it works](#how-it-works)
@@ -147,6 +148,17 @@ private data to them.
 | Rights | A normal user account. No admin rights are needed. |
 | Optional | Microsoft Edge for PDF export (it ships with Windows). An AI provider account or a local Ollama for AI. |
 
+## Versions
+
+Version numbers follow MySQL Workbench. In **26.10.0.1** the first three numbers, **26.10.0**, are the MySQL
+Workbench version this release is made and tested for, and the last number, **1**, is our release for it. A fix
+for the same Workbench becomes 26.10.0.2. When MySQL Workbench 26.11.0 comes out, the release made for it is
+26.11.0.1. Pick the release that matches your Workbench (Help > About in Workbench).
+
+If Workbench updates itself before a matching release is out, the plugin keeps working as long as the parts of
+Workbench it needs are unchanged. If they changed, it turns itself off and Workbench works as normal (see the
+[FAQ](#faq)).
+
 ## Install
 
 1. Download `Modern-MySQL-Workbench-Setup.exe` from the
@@ -154,6 +166,8 @@ private data to them.
    [Development](#development)).
 2. Run it. It installs for your user only, in `%LOCALAPPDATA%\Programs\Modern MySQL Workbench`, and
    adds a **Modern MySQL Workbench** shortcut to the Desktop and the Start menu.
+   The shortcut's icon is your own MySQL Workbench icon with a small notebook badge in the corner, made on your PC
+   when you install, so you can tell the two shortcuts apart.
 3. Open **Modern MySQL Workbench**.
 
 Plain MySQL Workbench stays exactly as it was and still opens from its own shortcut. Workbench allows one window per
