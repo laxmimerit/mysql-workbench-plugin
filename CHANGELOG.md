@@ -3,6 +3,14 @@
 Versions read like 26.10.0.1: the first three numbers are the MySQL Workbench version the plugin is made
 and tested for (26.10.0), the last number is our release for it (1, 2, 3...).
 
+## 26.10.0.2
+
+For MySQL Workbench 26.10.0. Installer and launcher fix; the plugin itself is unchanged.
+
+- No more "Failed to remove temporary directory" warning. The launcher starts the plugin server from the same exe,
+  and the server used to run from the launcher's own unpacked temp folder (`_MEI...`), so the launcher could not
+  delete that folder when it closed. Each program the exe starts now gets its own folder.
+
 ## 26.10.0.1
 
 First release, for MySQL Workbench 26.10.0.

@@ -1,6 +1,6 @@
 {
   "name": "mysql-workbench-plugin",
-  "version": "26.10.0+1",
+  "version": "26.10.0+2",
   "private": true,
   "description": "Modern MySQL Workbench by KGP Talkie: a Jupyter-style notebook, AI and results tools for MySQL Workbench 26",
   "license": "Apache-2.0",

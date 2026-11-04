@@ -15,7 +15,7 @@ A free plugin by KGP Talkie. It runs on top of your installed Workbench and does
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 ![Platform: Windows 10 and 11](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6.svg)
 ![MySQL Workbench 26](https://img.shields.io/badge/MySQL%20Workbench-26.10-00758F.svg)
-![Version 26.10.0.1](https://img.shields.io/badge/version-26.10.0.1-brightgreen.svg)
+![Version 26.10.0.2](https://img.shields.io/badge/version-26.10.0.2-brightgreen.svg)
 
 [Install](#install) · [Features](#features) · [How it works](#how-it-works) · [Development](#development) ·
 [Changelog](CHANGELOG.md)

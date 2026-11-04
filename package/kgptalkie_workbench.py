@@ -20,7 +20,7 @@ from urllib.parse import parse_qs, urlsplit
 
 APP = "Modern MySQL Workbench"
 EXE_NAME = "Modern MySQL Workbench.exe"
-VERSION = "26.10.0.1"            # MySQL Workbench version it is made for, then our release
+VERSION = "26.10.0.2"            # MySQL Workbench version it is made for, then our release
 PORT = 9241
 LOCAL = os.environ["LOCALAPPDATA"]
 DEFAULT_TARGET = os.path.join(LOCAL, "Programs", "Modern MySQL Workbench")
