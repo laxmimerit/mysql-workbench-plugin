@@ -4,10 +4,14 @@
 
 # Modern MySQL Workbench
 
-**A Jupyter-style notebook for MySQL Workbench 26, with AI, result charts, exports and a VS Code-style workspace.**
+### A PLUGIN for MySQL Workbench, not a separate Workbench
+
+**It needs MySQL Workbench 26 installed on your PC. It adds a Jupyter-style notebook, AI, result charts, exports and
+a VS Code-style workspace to your own Workbench.**
 
 A free plugin by KGP Talkie. It runs on top of your installed Workbench and does not change a single Workbench file.
 
+![Type: plugin for MySQL Workbench](https://img.shields.io/badge/type-plugin%20for%20MySQL%20Workbench-E8590C.svg)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 ![Platform: Windows 10 and 11](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6.svg)
 ![MySQL Workbench 26](https://img.shields.io/badge/MySQL%20Workbench-26.10-00758F.svg)
@@ -19,6 +23,11 @@ A free plugin by KGP Talkie. It runs on top of your installed Workbench and does
 ![Get Started, Run All, results and a chart](docs/images/demo-run-all.gif)
 
 </div>
+
+> [!IMPORTANT]
+> **This is a plugin, not a full MySQL Workbench.** It does not install MySQL Workbench or a MySQL server. Install
+> [MySQL Workbench 26](https://dev.mysql.com/downloads/workbench/) first (free, from Oracle). Modern MySQL Workbench
+> then opens your own Workbench with the notebook, AI, charts and exports added.
 
 ## Contents
 
