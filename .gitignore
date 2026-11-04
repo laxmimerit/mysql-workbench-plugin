@@ -1,0 +1,22 @@
+node_modules/
+__pycache__/
+package/dist/
+
+# local test instance: Workbench profile and the throwaway MySQL server's data
+test-profile/
+test-mysql/*
+!test-mysql/my.ini
+
+# upstream clone used only for reading Workbench internals (GPL, 64 MB)
+ext/
+
+# old versions and local-only files
+backup/
+screens/
+plugin/kgp-plugin.v*.js
+server.py
+server.v1.py
+*.lnk
+
+# private notes for AI agents
+PROMPT-LOG.md

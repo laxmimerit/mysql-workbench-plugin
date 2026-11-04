@@ -1,0 +1,13 @@
+{
+  "name": "kgptalkie-mysql-workbench-plugin",
+  "version": "10.0.0",
+  "private": true,
+  "description": "KGP Talkie MySQL Workbench plugin: a Jupyter-style notebook, AI and results tools for MySQL Workbench",
+  "license": "Apache-2.0",
+  "scripts": {
+    "keywords": "node tools/gen-keywords.mjs"
+  },
+  "devDependencies": {
+    "sql-formatter": "15.9.0"
+  }
+}
