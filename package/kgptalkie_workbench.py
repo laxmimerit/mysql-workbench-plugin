@@ -571,9 +571,19 @@ def wb_main_cmdlines():
     return [l for l in out.splitlines() if l.strip() and "--type=" not in l]
 
 
+def child_env():
+    """Environment for programs this exe starts. A one-file exe unpacks itself to a temp _MEI folder; without
+    PYINSTALLER_RESET_ENVIRONMENT a copy of this exe started from here (the plugin server) would run from that same
+    folder, and when this process exits it cannot delete the folder and shows "Failed to remove temporary
+    directory". Set, the child unpacks its own folder and nothing of ours leaks into Workbench's environment."""
+    env = {k: v for k, v in os.environ.items() if not k.upper().startswith("_PYI") and k.upper() != "_MEIPASS2"}
+    env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
+    return env
+
+
 def start_server():
     cmd = [SELF] if FROZEN else [sys.executable, SELF]
-    subprocess.Popen(cmd + ["--serve", "--port", str(PORT)], cwd=HOME_DIR,
+    subprocess.Popen(cmd + ["--serve", "--port", str(PORT)], cwd=HOME_DIR, env=child_env(),
                      creationflags=NO_WINDOW | DETACHED | NEW_GROUP, close_fds=True,
                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
@@ -602,7 +612,7 @@ def launch():
         box("MySQL Workbench is already open without the plugin.\n"
             "Close it (File > Exit), then open Modern MySQL Workbench again.", 0x30)
         return 1
-    subprocess.Popen([exe, f"--renderer-url={URL}"], creationflags=DETACHED, close_fds=True)
+    subprocess.Popen([exe, f"--renderer-url={URL}"], env=child_env(), creationflags=DETACHED, close_fds=True)
     return 0
 
 
@@ -734,7 +744,7 @@ def install(target, shortcuts):
     with open(os.path.join(target, "install.json"), "w", encoding="utf-8") as f:
         json.dump({"app": APP, "version": VERSION, "links": links, "registry": bool(shortcuts)}, f, indent=1)
     if box(f"{APP} is installed.\n\nOpen it now?", 0x24) == 6 and not QUIET:
-        subprocess.Popen([dst], cwd=target, creationflags=DETACHED, close_fds=True)
+        subprocess.Popen([dst], cwd=target, env=child_env(), creationflags=DETACHED, close_fds=True)
     return 0
 
 
