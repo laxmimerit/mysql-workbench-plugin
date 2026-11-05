@@ -15,7 +15,7 @@ A free plugin by KGP Talkie. It runs on top of your installed Workbench and does
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 ![Platform: Windows 10 and 11](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6.svg)
 ![MySQL Workbench 26](https://img.shields.io/badge/MySQL%20Workbench-26.10-00758F.svg)
-![Version 26.10.0.2](https://img.shields.io/badge/version-26.10.0.2-brightgreen.svg)
+![Version 26.10.0.3](https://img.shields.io/badge/version-26.10.0.3-brightgreen.svg)
 
 [Install](#install) · [Features](#features) · [How it works](#how-it-works) · [Development](#development) ·
 [Changelog](CHANGELOG.md)
@@ -52,7 +52,7 @@ A free plugin by KGP Talkie. It runs on top of your installed Workbench and does
 
 - One box per cell, line numbers, `[n]` run counts, a play button on hover, Markdown cells that render when you
   leave them.
-- Notebook bar: + Code, + Markdown, + AI Cell, Run All (waits for every statement), Clear All Outputs, Restart,
+- Notebook bar: + Code, + Markdown, + AI Prompt, Run All (waits for every statement), Clear All Outputs, Restart,
   Variables, Export.
 - Command mode like Jupyter: Esc, then A/B add, D D delete, M/Y change type, C/X/V copy/cut/paste, Z undo. Every cell
   action is one undo step, and a deleted cell comes back with its output.
@@ -93,8 +93,15 @@ A free plugin by KGP Talkie. It runs on top of your installed Workbench and does
 ### AI
 
 - OpenAI, Anthropic, OpenRouter, Ollama, or any OpenAI-compatible API (LM Studio, vLLM, LiteLLM).
-- Explain a cell, optimize it (with its EXPLAIN plan), Fix with AI on errors, explain a result, and AI cells that
-  turn plain words into SQL in the cell below.
+- Explain a cell, optimize it (with its EXPLAIN plan), Fix with AI on errors, explain a result, and AI prompts that
+  turn plain words into SQL in the cell below. Every cell's toolbar has Add AI Prompt Below (the chat bubble with a
+  sparkle).
+- Agent mode (the default, set in Configure AI): AI prompts and Fix with AI plan the work, look up your tables and
+  columns, and check the SQL against the database before they answer. "How this answer was made" in the AI card
+  shows every step. Direct mode makes one call instead: faster, but no checks. Agent mode needs a model that can
+  call tools.
+- The AI looks where the cell is (a `USE` in the cell, the notebook's database, or the databases your request
+  names), and never guesses a table or column name. Column autocomplete follows a `USE` the same way.
 - Your API key stays on your PC, encrypted (see [Privacy and security](#privacy-and-security)).
 - Pick a model that is big enough. See [Choosing an AI model](#choosing-an-ai-model).
 
@@ -130,7 +137,7 @@ A stronger model gives better answers.
 |---|---|
 | 0.5b to 4b | **Not good enough.** Makes up tables and columns, joins the wrong columns, explains SQL it did not write. |
 | 8b to 14b | The minimum. Fine for simple queries; mistakes on bigger joins. |
-| 27b to 32b | **Recommended.** Good SQL and good explanations. The AI cell GIF above uses `qwen3.8:27b` on Ollama. |
+| 27b to 32b | **Recommended.** Good SQL and good explanations. The AI prompt GIF above uses `qwen3.8:27b` on Ollama. |
 
 - **If you use a small model (4b or less) and the SQL is wrong, the plugin is not broken. The model is too small.**
   Please do not report it as a bug. Use a bigger model, or a cloud model, and try again.

@@ -350,8 +350,8 @@ def scene_results(p, s, film):
 
 
 def scene_ai(p, s, film):
-    """An AI cell turns plain words into SQL in the cell below, then it runs."""
-    s.caption("An AI cell: describe what you want in plain words")
+    """An AI prompt turns plain words into SQL in the cell below (agent mode), then it runs."""
+    s.caption("An AI prompt: describe what you want in plain words")
     s.click(bar_btn("ai"), mousedown_only=True)
     s.wait(0.6)
     s.type("top 5 customers by total order amount, from sample_shop", cps=14)

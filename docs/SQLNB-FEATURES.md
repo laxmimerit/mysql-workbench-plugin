@@ -6,6 +6,7 @@ PostgreSQL, SQL Server. Workbench already does connections (SSL/SSH, saved passw
 multi-statement result tabs; we add what it lacks.
 
 ## Plan (phases, in order) and status
+Last ported extension commit: 4e4ba9e (Release 1.1.1)
 v8 (2026-11-04): AI done and tested in the hidden copy with Ollama qwen3.5:4b (explain, optimize with EXPLAIN FORMAT=TREE, fix, explain result, AI cell). AI cell = markdown context whose first line is `<!-- ai -->` (hidden); generated SQL cell starts with `-- AI-written from the cell above` and is replaced on re-run. Server: `package/kgptalkie_workbench.py` is now the one source (installer, launcher, server); `server.py` is the old dev copy. Test AI config: env KGPTALKIE_AI_DIR.
 v9 (2026-11-04): all phases done and tested in the hidden copy. Run All waits for every statement of a multi-statement cell (W.kgptalkieSqlRunning).
 | # | Feature | Status |
@@ -26,6 +27,7 @@ v9 (2026-11-04): all phases done and tested in the hidden copy. Run All waits fo
 | E1 | Schema tree (native menu): Select Top 100 in Notebook, Describe in Notebook; Copy Name is Workbench's own | done v9 |
 | E2 | Sample notebook (sample_shop) + Get Started (? in the bar). Completion: columns after alias/table (`c.`), dupes removed; any-case + fuzzy matching is Workbench's own (slt->SELECT, cstm->customers, CIT->city) | done v9 |
 | G | v10 (from the extension's PROMPT-LOG): MySQL keywords in capitals as you type (sql-formatter word lists, names protected, Ctrl+Z undoes, on by default); autocomplete keyword case upper / lower / as typed; "Connection · MySQL x.y.z" on the notebook bar | done v10 |
+| H | v26.10.0.3 (extension 1.0.2 to 1.1.1): AI agent mode (write_todos plan, list_databases / list_tables / describe_table / sample_rows / check_sql tools, page-side loop, server /kgptalkie/ai/chat for OpenAI-compatible, Anthropic, Ollama; trace in the card); Configure AI Mode (Agent / Direct); AI sees the request's databases and never guesses names; USE followed by AI and column autocomplete; + AI Prompt; Add AI Prompt Below (chat-sparkle drawn from comment + sparkle glyphs, Workbench's codicon font has no chat-sparkle); an answer without SQL is done, not an error | done 26.10.0.3 |
 | F | Notebook Settings (gear): timeout, confirm mode, connection tag, export rows. AI options in Configure AI. saveResults: not ported (Workbench saves notebooks without outputs; .sqlnb export keeps them) | done v9 |
 
 Ad-hoc SQL from the plugin (schema for AI prompts, EXPLAIN, Describe): `_ConnectionWorkspace` props

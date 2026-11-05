@@ -1,6 +1,9 @@
-/* Modern MySQL Workbench plugin 26.10.0.2 (2026-11-05) by KGP Talkie, for MySQL Workbench 26.10.0.
+/* Modern MySQL Workbench plugin 26.10.0.3 (2026-11-05) by KGP Talkie, for MySQL Workbench 26.10.0.
    Version: the first three numbers are the MySQL Workbench version it is made for, the last is our release.
    Copyright 2026 KGP Talkie (Laxmi Kant). Licensed under the Apache License 2.0; see LICENSE and NOTICE.
+   26.10.0.3: Explorer New File / New Folder, Search panel (Ctrl+Shift+F), an open file switches to its tab. From SQL
+   Notebook Studio 1.0.2 to 1.1.1: AI agent mode (plans, looks up tables, checks the SQL), AI sees the right tables and
+   never guesses names, a cell's USE is followed (AI and autocomplete), + AI Prompt, Add AI Prompt Below on every cell.
    26.10.0.2: installer and launcher fix only (no plugin change).
    26.10.0.1: version guard. When a Workbench update changes the internals the plugin needs, it turns itself off
    cleanly and says so (see "version guard" below).
@@ -51,7 +54,7 @@
     puts the editor options back and leaves plain Workbench with a short note. It stays off for that Workbench and
     plugin version, so a later Workbench or plugin update tries again. The server puts the Workbench version (from
     resources/app/package.json) in <meta name="kgptalkie-wb-version">. */
- const VERSION = '26.10.0.2', TESTED_WB = ['26.10.0'], OFF_KEY = 'kgptalkieOff';
+ const VERSION = '26.10.0.3', TESTED_WB = ['26.10.0'], OFF_KEY = 'kgptalkieOff';
  const wbVer = (() => { const m = document.querySelector('meta[name="kgptalkie-wb-version"]'); return m ? m.content : ''; })();
  const offFlag = () => { try { const f = JSON.parse(store.get(OFF_KEY, 'null')); return f && f.wb === wbVer && f.plugin === VERSION ? f : null; } catch (e) { return null; } };
  const offNote = f => {
@@ -163,6 +166,7 @@ body:not(.kgptalkieTitleOpen) #desktopWorkspaceTitlebar{display:none !important}
 .kgptalkieCellBar button{width:24px;height:18px}
 .kgptalkieCellBar button:hover,.kgptalkieNbBar button:hover{background:#EBEEF2;color:#111}
 .kgptalkieCellBar .codicon{font-size:14px}
+.codicon.codicon-chat-sparkle{position:relative}.codicon-chat-sparkle::before{content:'\\ea6b'}.codicon-chat-sparkle::after{content:'\\ec10';font-family:codicon;position:absolute;right:-5px;top:-2px;font-size:8px}
 .kgptalkieNbBar{flex:0 0 auto;display:flex;align-items:center;gap:2px;height:34px;padding:0 12px 0 ${BX - 8}px;background:#fff;border-bottom:1px solid #EDEDED;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:12px}
 .kgptalkieNbBar button{gap:6px;padding:4px 9px;height:24px;white-space:nowrap;flex:0 0 auto}
 .kgptalkieNbBar .codicon{font-size:14px}
@@ -203,6 +207,26 @@ body:not(.kgptalkieTitleOpen) #desktopWorkspaceTitlebar{display:none !important}
 .kgptalkieAiSk i:nth-child(1){width:92%}.kgptalkieAiSk i:nth-child(2){width:74%}.kgptalkieAiSk i:nth-child(3){width:52%}
 @keyframes kgptalkiePulse{50%{opacity:.45}}
 .kgptalkieSpin{animation:kgptalkieSpin 1s linear infinite}@keyframes kgptalkieSpin{to{transform:rotate(360deg)}}
+.kgptalkieTrace{margin:4px 0 8px;border:1px solid #E4DCF4;border-radius:4px;background:#fff;font-size:12.5px}
+.kgptalkieTraceH{display:flex;align-items:center;gap:6px;padding:4px 8px;cursor:pointer;user-select:none}
+.kgptalkieTraceH:hover{background:#F4F0FC}
+.kgptalkieChev{flex:none;font-size:14px;transition:transform .12s}
+.kgptalkieTrace.open .kgptalkieChev{transform:rotate(90deg)}
+.kgptalkieTraceT{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kgptalkieTrace.busy .kgptalkieTraceT{font-weight:500;color:#5A5A5A}
+.kgptalkieTodos,.kgptalkieSteps{list-style:none;margin:0;padding:4px 10px 6px 28px}
+.kgptalkieTodos{border-bottom:1px dashed #E4DCF4}
+.kgptalkieTodos li,.kgptalkieStepH{display:flex;align-items:flex-start;gap:7px;padding:2px 0;line-height:18px}
+.kgptalkieTodos .codicon,.kgptalkieStepH .codicon{flex:none;margin-top:2px;font-size:14px}
+.kgptalkieTodos li.completed{color:#6B6B6B}.kgptalkieTodos li.completed .codicon{color:#2DA44E}
+.kgptalkieTodos li.in_progress .codicon{color:#8B5CF6}
+.kgptalkieStep{margin:0}
+.kgptalkieStepH.kgptalkieTog{cursor:pointer}.kgptalkieStepH.kgptalkieTog:hover span:last-child{text-decoration:underline}
+.kgptalkieStep.done .codicon-check{color:#2DA44E}.kgptalkieStep.error .codicon-warning{color:#BF8700}.kgptalkieStep .codicon-comment{color:#6B6B6B}
+.kgptalkieIo{margin:3px 0 6px 21px;padding:6px 8px;border-radius:3px;background:#F6F4FA;font-family:Consolas,'Courier New',monospace;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto}
+.kgptalkieIo.in{border-left:2px solid #8B5CF6}
+.kgptalkieAiNotice{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:#6B6B6B}
+@media (prefers-reduced-motion:reduce){.kgptalkieChev{transition:none}}
 .kgptalkieFixBtn{margin:6px 0 2px 2px;height:24px;padding:0 9px;border:1px solid #DDD3F2;background:#fff;color:#5B3FA8}
 .kgptalkieResAi{position:absolute;top:2px;right:6px;width:24px;height:22px;justify-content:center;z-index:5;color:#7C3AED;background:#fff}
 .scriptingConsole .renderTarget:has(> .kgptalkieResBar){display:flex !important;flex-direction:column}
@@ -601,7 +625,7 @@ body.kgptalkieActOn #documentSideBar .accordionContent > .sashContainer{display:
    const cur = isAi(x) ? 'ai' : isMd(x) ? 'markdown' : 'mysql'; if (cur === lang) return;
    let text = textOf(m, x); if (cur === 'ai') text = text.split('\n').slice(1).join('\n');
    if (lang === 'ai') text = AI_MARK + '\n' + text;
-   const label = lang === 'markdown' ? 'Change to Markdown' : lang === 'ai' ? 'Change to AI Cell' : 'Change to SQL';
+   const label = lang === 'markdown' ? 'Change to Markdown' : lang === 'ai' ? 'Change to AI Prompt' : 'Change to SQL';
    await act(ed, label, () => setCell(ed, i, { text, lang: lang === 'ai' ? 'markdown' : lang, res: null }));
    const y = ctxs(ed)[i]; MDE.delete(y); AIO.delete(y); syncAi(ed); dirty(ed);
    if (!rendered(y) && !ed.kgptalkieCmd) focusCell(ed, i, true); else if (ed.kgptalkieNB) { ed.kgptalkieNB.sel = i; ed.kgptalkieNB.dsig = ''; }
@@ -725,20 +749,46 @@ body.kgptalkieActOn #documentSideBar .accordionContent > .sashContainer{display:
   const root = document.getElementById('root'); if (root) walk(root.__k); return hit || any;
  };
  const sqlRun = async (ed, sql) => { const be = backendOf(ed); if (!be) throw new Error('no open connection'); const r = await be.execute(sql); return { cols: (r && r.columns || []).map(c => c.name || c.title), rows: (r && r.rows) || [] }; };
- const schemaText = async (ed, focus) => {
+ /* Where a cell's unqualified names resolve (SQL Notebook Studio 1.0.2, src/schema/where.ts): a USE earlier in the
+    cell (before the caret for autocomplete), else the database the notebook's session is in, else a USE in an
+    earlier cell. null = no database. */
+ const USE_RE = /^(?:\s|--[^\n]*(?:\n|$)|#[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/)*use\s+(`(?:[^`]|``)+`|"(?:[^"]|"")+"|\[(?:[^\]]|\]\])+\]|[\w$@#.-]+)\s*;?\s*$/i;
+ const unqName = s => s[0] === '`' ? s.slice(1, -1).replace(/``/g, '`') : s[0] === '"' ? s.slice(1, -1).replace(/""/g, '"') : s[0] === '[' ? s.slice(1, -1).replace(/\]\]/g, ']') : s;
+ const useIn = text => { if (!/\buse\s/i.test(text || '')) return null; const ss = splitSql(text); for (let k = ss.length - 1; k >= 0; k--) { const m = USE_RE.exec(ss[k]); if (m) return unqName(m[1]); } return null; };
+ const sessionDb = async ed => { try { return (await sqlRun(ed, 'SELECT DATABASE()')).rows[0][0] || null; } catch (e) { return null; } };
+ const whereFor = async (ed, i, upTo) => {
+  const m = ed.getModel(), all = ctxs(ed), x = all[i];
+  if (x && !isMd(x)) { const u = useIn(upTo != null ? upTo : textOf(m, x)); if (u) return u; }
+  const db = await sessionDb(ed); if (db) return db;
+  for (let k = (i < 0 ? all.length : i) - 1; k >= 0; k--) { const y = all[k]; if (!y || isMd(y)) continue; const u = useIn(textOf(m, y)); if (u) return u; }
+  return null;
+ };
+ /* whether text (lowercased) names `name` as a word, or its singular ("person" for persons) */
+ const mentions = (text, name) => { const n = String(name).toLowerCase(), forms = n.length > 3 && n.endsWith('s') ? [n, n.slice(0, -1)] : [n];
+  return forms.some(f => new RegExp('(^|[^\\w$])' + f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^\\w$]|$)').test(text)); };
+ const sameName = (a, b) => !!a && !!b && String(a).toLowerCase() === String(b).toLowerCase();
+ const SYS_DBS = new Set(['information_schema', 'mysql', 'performance_schema', 'sys']);
+ const listDbs = async ed => (await sqlRun(ed, 'SHOW DATABASES')).rows.map(r => String(r[0])).filter(d => !SYS_DBS.has(d.toLowerCase()));
+ /* compact schema text for AI prompts (src/schema/cache.ts describeForAi, MySQL): the tables where the cell is, plus
+    any database the request names; with no database, the first 5 user databases. Named tables first. */
+ const schemaText = async (ed, focus, x, budget = 12000) => {
   try {
-   const db = (await sqlRun(ed, 'SELECT DATABASE()')).rows[0][0];
-   const where = db ? 'c.TABLE_SCHEMA = DATABASE()' : "c.TABLE_SCHEMA NOT IN ('mysql','sys','performance_schema','information_schema')";
-   const r = await sqlRun(ed, 'SELECT c.TABLE_SCHEMA, c.TABLE_NAME, t.TABLE_TYPE, c.COLUMN_NAME, c.COLUMN_TYPE, c.COLUMN_KEY FROM information_schema.COLUMNS c JOIN information_schema.TABLES t ON t.TABLE_SCHEMA = c.TABLE_SCHEMA AND t.TABLE_NAME = c.TABLE_NAME WHERE ' + where + ' ORDER BY c.TABLE_SCHEMA, c.TABLE_NAME, c.ORDINAL_POSITION LIMIT 20000');
+   const lower = String(focus || '').toLowerCase(), here = await whereFor(ed, x ? ctxs(ed).indexOf(x) : -1);
+   const all = await listDbs(ed).catch(() => []);
+   const dbs = [...(here ? [here] : []), ...all.filter(d => mentions(lower, d) && !sameName(d, here))];
+   if (!dbs.length) dbs.push(...all.slice(0, 5));
+   const notes = [here ? `Current database: ${here}.` : 'No database is selected: write database.table, or USE database first.'];
    const T = new Map();
-   for (const [s, n, ty, cn, ct, ck] of r.rows) { const k = s + '.' + n; if (!T.has(k)) T.set(k, { s, n, view: /VIEW/i.test(ty || ''), cols: [] }); T.get(k).cols.push(cn + ' ' + ct + (ck === 'PRI' ? ' pk' : '')); }
-   let tabs = [...T.values()];
-   if (!db) { const ss = [...new Set(tabs.map(t => t.s))].slice(0, 5); tabs = tabs.filter(t => ss.includes(t.s)); }
-   const lo = String(focus || '').toLowerCase(); tabs.sort((a, b) => Number(lo.includes(b.n.toLowerCase())) - Number(lo.includes(a.n.toLowerCase())));
+   if (dbs.length) {
+    const r = await sqlRun(ed, 'SELECT c.TABLE_SCHEMA, c.TABLE_NAME, t.TABLE_TYPE, c.COLUMN_NAME, c.COLUMN_TYPE, c.COLUMN_KEY FROM information_schema.COLUMNS c JOIN information_schema.TABLES t ON t.TABLE_SCHEMA = c.TABLE_SCHEMA AND t.TABLE_NAME = c.TABLE_NAME WHERE c.TABLE_SCHEMA IN (' + dbs.map(lit).join(', ') + ') ORDER BY c.TABLE_SCHEMA, c.TABLE_NAME, c.ORDINAL_POSITION LIMIT 50000');
+    for (const [s, n, ty, cn, ct, ck] of r.rows) { const k = String(s).toLowerCase() + '.' + n; if (!T.has(k)) T.set(k, { s, n, view: /VIEW/i.test(ty || ''), cols: [] }); T.get(k).cols.push(cn + ' ' + ct + (ck === 'PRI' ? ' pk' : '')); }
+   }
+   const found = [];
+   for (const d of dbs) { const named = mentions(lower, d); [...T.values()].filter(t => sameName(t.s, d)).slice(0, 300).forEach(t => found.push({ t, prefix: sameName(d, here) ? '' : d + '.', score: (mentions(lower, t.n) ? 2 : 0) + (named ? 1 : 0) })); }
+   found.sort((a, b) => b.score - a.score);
    const parts = []; let used = 0;
-   for (const t of tabs.slice(0, 80)) { if (used > 12000) break; const line = (t.view ? 'view ' : '') + (db ? t.n : t.s + '.' + t.n) + '(' + t.cols.join(', ') + ')'; parts.push(line); used += line.length; }
-   if (!parts.length) return '(no tables found)';
-   return (db ? 'Current database: ' + db + '\n' : '') + parts.join('\n');
+   for (const { t, prefix } of found.slice(0, 150)) { if (used > budget) break; const line = (t.view ? 'view ' : '') + prefix + t.n + '(' + t.cols.join(', ') + ')'; parts.push(line); used += line.length; }
+   return [...notes, parts.length ? parts.join('\n') : '(no tables found)'].join('\n');
   } catch (e) { return '(schema unavailable: ' + (e && e.message || e) + ')'; }
  };
  /* prompts: the same words as SQL Notebook Studio (src/ai/prompts.ts), MySQL dialect */
@@ -750,9 +800,17 @@ body.kgptalkieActOn #documentSideBar .accordionContent > .sashContainer{display:
   optimize: (sql, schema, plan) => `Review this query for performance.\n\nAnswer in exactly this shape:\n**Verdict:** one sentence.\n\n**What the plan shows**\n- 2 to 4 bullets.${plan ? '' : ' (No plan was available; reason from the query and schema.)'}\n\n**Improvements**\n- Concrete changes. Write any index as a CREATE INDEX statement.\n\nIf the query can be rewritten better, end with the improved query in one sql code block. If it is already good, say so and add no code block.\n\nSchema:\n${schema}\n\nQuery:\n${fence(sql)}\n${plan ? '\nPlan:\n```\n' + plan.slice(0, 6000) + '\n```' : ''}`,
   fix: (sql, error, schema) => `This query failed.\n\nError:\n\`\`\`\n${error}\n\`\`\`\n\nAnswer in exactly this shape:\n**Cause:** one sentence.\n\nThen the corrected query in one sql code block. Keep the original intent, formatting and comments.\n\nSchema:\n${schema}\n\nQuery:\n${fence(sql)}`,
   result: (sql, csv, total) => `Describe what this result shows.\n\nAnswer with:\n- 2 to 5 bullets with concrete numbers from the data.\n- One last bullet on anything odd (nulls, outliers, duplicates), only if there is something.\n\nQuery:\n${fence(sql)}\n\nFirst rows of ${total.toLocaleString('en-US')} (CSV):\n\`\`\`\n${csv}\n\`\`\``,
-  generate: (request, schema) => `Write one query for this request:\n"${request.trim()}"\n\nAnswer with one short sentence on how the query works (mention any assumption), then the query in one sql code block.\n\nSchema:\n${schema}`,
+  generate: (request, schema) => `Write one query for this request:\n"${request.trim()}"\n\nAnswer with one short sentence on how the query works, then the SQL in one sql code block. If the request needs several statements (for example a CREATE TABLE, then a query that uses it), put all of them in that block, in order.\nUse the exact table and column names from the schema below. If the request needs a table or column that is not in it, do not guess: say which one is missing and write no query, unless the request is to create it.\n\nSchema:\n${schema}`,
+  /* agent mode: same rules, plus how to use the tools */
+  agentSystem: o => [PR.system(), '', 'You can look at the database through read-only tools. They never change data, and you cannot run the query: the user runs it.', 'How to work:',
+   '- If the task has several parts, first write a short plan with write_todos (2 to 5 items) and keep it updated. For a simple request, skip the plan.',
+   `- The schema in the request may be incomplete. Confirm every table and column you use with ${o.databases ? 'list_databases, ' : ''}list_tables or describe_table. Never guess a name.`,
+   o.sample ? '- Use sample_rows only when the values matter (formats, codes, NULLs).' : '',
+   '- Before you answer with SQL, pass the exact SQL to check_sql and fix every error it reports. Check it again after a fix.',
+   '- Be efficient: a few tool calls are usually enough. Do not look at tables the request does not need.',
+   '- Your final message is all the user sees of your answer: write it in the shape the request asks for, with the SQL in one ```sql code block.'].filter(Boolean).join('\n'),
  };
- const extractSql = md => { const b = [...md.matchAll(/```(?:sql|mysql)?\s*\n([\s\S]*?)```/gi)]; const l = b.length ? b[b.length - 1][1].trim() : ''; return l || undefined; };
+ const extractSql = md => { const b = [...md.matchAll(/```(?:sql|mysql|postgresql|tsql|sqlite)?\s*\n([\s\S]*?)```/gi)]; const l = b.length ? b[b.length - 1][1].trim() : ''; return l || undefined; };
  const stripThinking = t => t.replace(/<think>[\s\S]*?(<\/think>|$)/g, '').replace(/^\s+/, '');
  const toCsv = (head, rows) => { const e = v => { if (v === null || v === undefined) return ''; const s = typeof v === 'object' ? JSON.stringify(v) : String(v); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }; return [head.map(e).join(','), ...rows.map(r => r.map(e).join(','))].join('\n'); };
  const errText = x => { const rt = x && x.presentation && x.presentation.renderTarget; if (!rt) return ''; return [...rt.querySelectorAll('.resultText.error')].map(e => e.textContent.trim()).filter(Boolean).join('\n'); };
@@ -765,10 +823,247 @@ body.kgptalkieActOn #documentSideBar .accordionContent > .sashContainer{display:
   return { sql: set.sql || '', cols: set.columns.map(c => c.title), rows: rows.map(r => set.columns.map(c => r[c.field])), set };
  };
 
+ /* ---------- AI agent mode (SQL Notebook Studio 1.1.0, src/ai/agent.ts) ----------
+    AI cells and Fix with AI: the model plans with write_todos, looks at the database through read-only tools, checks
+    its SQL with EXPLAIN (nothing is run), and only then answers. The plugin server makes each model call
+    (/kgptalkie/ai/chat, one turn with tools); the loop and the tools run here, on the notebook's connection.
+    The write_todos texts are LangChain's todoListMiddleware (MIT), as the extension uses them. */
+ const TODO_DESC = `Use this tool to create and manage a structured task list for your current work session. This helps you track progress and organize complex tasks.
+
+Only use this tool if you think it will be helpful in staying organized. If the user's request is trivial and takes less than 3 steps, it is better to NOT use this tool and just do the task directly.
+
+## When to Use This Tool
+
+Use this tool in these scenarios:
+
+1. Complex multi-step tasks - When a task requires 3 or more distinct steps or actions
+2. Non-trivial and complex tasks - Tasks that require careful planning or multiple operations
+3. User explicitly requests todo list - When the user directly asks you to use the todo list
+4. User provides multiple tasks - When users provide a list of things to be done (numbered or comma-separated)
+5. The plan may need future revisions or updates based on results from the first few steps
+
+## How to Use This Tool
+
+1. When you start working on a task - Mark it as in_progress BEFORE beginning work.
+2. After completing a task - Mark it as completed and add any new follow-up tasks discovered during implementation.
+3. You can also update future tasks, such as deleting them if they are no longer necessary, or adding new tasks that are necessary. Don't change previously completed tasks.
+4. You can make several updates to the todo list at once. For example, when you complete a task, you can mark the next task you need to start as in_progress.
+
+## When NOT to Use This Tool
+
+It is important to skip using this tool when:
+1. There is only a single, straightforward task
+2. The task is trivial and tracking it provides no benefit
+3. The task can be completed in less than 3 trivial steps
+4. The task is purely conversational or informational
+
+## Task States and Management
+
+1. **Task States**: Use these states to track progress:
+    - pending: Task not yet started
+    - in_progress: Currently working on (you can have multiple tasks in_progress at a time if they are not related to each other and can be run in parallel)
+    - completed: Task finished successfully
+
+2. **Task Management**:
+    - Update task status in real-time as you work
+    - Mark tasks complete IMMEDIATELY after finishing (don't batch completions)
+    - Complete current tasks before starting new ones
+    - Remove tasks that are no longer relevant from the list entirely
+    - IMPORTANT: When you write this todo list, you should mark your first task (or tasks) as in_progress immediately!.
+    - IMPORTANT: Unless all tasks are completed, you should always have at least one task in_progress.
+
+3. **Task Completion Requirements**:
+    - ONLY mark a task as completed when you have FULLY accomplished it
+    - If you encounter errors, blockers, or cannot finish, keep the task as in_progress
+    - When blocked, create a new task describing what needs to be resolved
+    - Never mark a task as completed if:
+        - There are unresolved issues or errors
+        - Work is partial or incomplete
+        - You encountered blockers that prevent completion
+        - You couldn't find necessary resources or dependencies
+        - Quality standards haven't been met
+
+4. **Task Breakdown**:
+    - Create specific, actionable items
+    - Break complex tasks into smaller, manageable steps
+    - Use clear, descriptive task names
+
+Being proactive with task management ensures you complete all requirements successfully
+Remember: If you only need to make a few tool calls to complete a task, and it is clear what you need to do, it is better to just do the task directly and NOT call this tool at all.
+
+## When You Finish
+
+\`write_todos\` tracks your work; it does not deliver the answer. Whatever the user asked for — computations, summaries, comparisons, data — must appear as text content in a message after your final \`write_todos\` call. Marking the last todo complete is not itself an answer to the user.`;
+ const TODO_SYSTEM = `## \`write_todos\`
+
+You have access to the \`write_todos\` tool to help you manage and plan complex objectives.
+Use this tool for complex objectives to ensure that you are tracking each necessary step.
+This tool is very helpful for planning complex objectives, and for breaking down these larger complex objectives into smaller steps.
+
+It is critical that you mark todos as completed as soon as you are done with a step. Do not batch up multiple steps before marking them as completed.
+For simple objectives that only require a few steps, it is better to just complete the objective directly and NOT use this tool.
+Writing todos takes time and tokens, use it when it is helpful for managing complex many-step problems! But not for simple few-step requests.
+
+## Important To-Do List Usage Notes to Remember
+
+- The \`write_todos\` tool should never be called multiple times in parallel.
+- Don't be afraid to revise the To-Do list as you go. New information may reveal new tasks that need to be done, or old tasks that are irrelevant.
+
+## Finishing a task
+
+When you finish all work, write your final answer in the message AFTER your last \`write_todos\` call — not in the same turn as that call. Start the final message with the substantive content the user asked for — the data, computation, summary, or analysis. The user wants the result, not confirmation that the work is done.`;
+ const OBJ = (props, req) => ({ type: 'object', properties: props, ...(req ? { required: req } : {}) });
+ const TABLE_ARGS = OBJ({ table: { type: 'string', description: 'Table name, may be written schema.table or database.schema.table' }, database: { type: 'string' }, schema: { type: 'string' } }, ['table']);
+ const AGENT_TOOLS = [
+  { name: 'list_databases', h: 'listDatabases', description: 'Lists the databases on this server and says which one the notebook is in.', parameters: OBJ({}) },
+  { name: 'list_tables', h: 'listTables', description: 'Lists the tables and views. With no arguments: where the notebook is now.', parameters: OBJ({ database: { type: 'string', description: 'Another database on the same server' }, schema: { type: 'string', description: 'A schema other than the default one' } }) },
+  { name: 'describe_table', h: 'describeTable', description: 'Shows the columns of one table or view: name, type, primary key, nullable.', parameters: TABLE_ARGS },
+  { name: 'check_sql', h: 'checkSql', description: 'Checks SQL against the real database without running it: syntax, tables and columns. Nothing is executed and no data changes. Returns OK or the error.', parameters: OBJ({ sql: { type: 'string', description: 'The full SQL you plan to answer with' } }, ['sql']) },
+  { name: 'sample_rows', h: 'sampleRows', description: 'Returns 5 rows of a table, to see what the values look like (formats, codes, NULLs).', parameters: OBJ({ table: { type: 'string' }, database: { type: 'string' }, schema: { type: 'string' } }, ['table']) },
+  { name: 'write_todos', h: null, description: TODO_DESC, parameters: OBJ({ todos: { type: 'array', description: 'List of todo items to update', items: OBJ({ content: { type: 'string', description: 'Content of the todo item' }, status: { type: 'string', enum: ['pending', 'in_progress', 'completed'], description: 'Status of the todo' } }, ['content', 'status']) } }, ['todos']) },
+ ];
+ const NO_TOOLS = /does(n't| not) support tools|not support (tool|function)|tools? (calling |use )?(is |are )?not supported|no endpoints found that support tool|function calling is not (enabled|supported)|tool_choice|tool use is not/i;
+ const FAILED = /^(error|failed)\b/i;
+ const clipOut = s => (s.length > 2000 ? s.slice(0, 2000) + '\n...' : s);
+ const firstLine = s => { const l = s.replace(/<think>[\s\S]*?(<\/think>|$)/g, '').trim().split('\n')[0].replace(/[*_`#]/g, '').trim(); return l.length > 90 ? l.slice(0, 87) + '...' : l || 'Thinking'; };
+ /* "db.table" (with ` ` or " " quoting) into its parts, unquoted (src/ai/sqlnames.ts) */
+ const splitName = name => { const parts = [], re = /\s*(?:\[((?:[^\]]|\]\])*)\]|`((?:[^`]|``)*)`|"((?:[^"]|"")*)"|([^.\s[\]`"]+))\s*(\.|$)/gy; let m;
+  while ((m = re.exec(name)) && m[0]) { parts.push(m[1] !== undefined ? m[1].replace(/]]/g, ']') : m[2] !== undefined ? m[2].replace(/``/g, '`') : m[3] !== undefined ? m[3].replace(/""/g, '"') : m[4]); if (!m[5]) break; }
+  return parts.length ? parts : [name]; };
+ const NAME_RE = '(?:\\[(?:[^\\]]|\\]\\])+\\]|"[^"]+"|`[^`]+`|[\\w@#$]+)', FULL_RE = `${NAME_RE}(?:\\s*\\.\\s*${NAME_RE}){0,2}`;
+ /* the tables and views the SQL creates, lowercased, without the database */
+ const createdTables = sql => [...String(sql).replace(/--[^\n]*|\/\*[\s\S]*?\*\/|'(?:[^']|'')*'/g, ' ').matchAll(new RegExp(`\\bcreate\\s+(?:or\\s+replace\\s+)?(?:temp(?:orary)?\\s+)?(?:table|view)\\s+(?:if\\s+not\\s+exists\\s+)?(${FULL_RE})`, 'gi'))].map(m => splitName(m[1]).pop().toLowerCase());
+ const nameOf = a => { const dots = ((a.table || '').match(/\./g) || []).length; return [dots ? (dots < 2 ? a.database : undefined) : a.database, dots ? undefined : a.schema, a.table].filter(Boolean).join('.'); };
+ const stepTitle = (name, a) => ({ list_databases: 'Listed the databases', list_tables: `Listed the tables${a.database || a.schema ? ' in ' + [a.database, a.schema].filter(Boolean).join('.') : ''}`,
+  describe_table: `Read the columns of ${nameOf(a)}`, sample_rows: `Looked at 5 rows of ${nameOf(a)}`, check_sql: 'Checked the SQL against the database' }[name] || `Used ${name}`);
+ const isLocalAi = cfg => !!cfg && (cfg.provider === 'ollama' || cfg.provider === 'custom') && /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(\/|$)/i.test(cfg.baseUrl || 'http://localhost:11434');
+ /* Checks SQL without running it: EXPLAIN each SELECT / INSERT / UPDATE / DELETE / REPLACE. Schema changes are never
+    run, so a later statement on a table the SQL creates is skipped, not failed. A USE in the SQL (or the database an
+    earlier USE points the cell at) is followed on the notebook's session and the session is put back afterwards. */
+ const checkSql = async (ed, here, sql, created = new Set()) => {
+  const text = String(sql || '').trim(); if (!text) return 'Error: no SQL given.';
+  const msg = e => (e && e.message) || String(e);
+  let cur; try { cur = await (async () => (await sqlRun(ed, 'SELECT DATABASE()')).rows[0][0] || null)(); } catch (e) { return `Could not connect to check the SQL: ${msg(e)}. Answer without the check.`; }
+  const stmts = splitSql(text).map(s => stripSqlComments(s.replace(/^\s*DELIMITER\s+\S+[ \t]*\n/i, '').replace(/\n\s*DELIMITER\s+;\s*$/i, '')).trim().replace(/;\s*$/, '')).filter(Boolean);
+  const creates = new Set([...created, ...createdTables(text)]);
+  let checked = 0, ddl = 0, skipped = 0, nodb = 0, moved = false;
+  const go = async db => { if (!cur) return false; await sqlRun(ed, 'USE ' + qid(db)); moved = true; return true; };
+  try {
+   if (here && cur && !sameName(here, cur)) { try { await go(here); } catch (e) { } }
+   for (let i = 0; i < stmts.length; i++) {
+    const s = stmts[i];
+    if (/^\s*(create|alter|drop|truncate|rename|comment|grant|revoke)\b/i.test(s)) { ddl++; continue; }
+    const u = USE_RE.exec(s); if (u) { if (cur) { try { await go(unqName(u[1])); } catch (e) { return `Failed on statement ${i + 1}: ${msg(e)}`; } } continue; }
+    if (!/^\s*(select|with|insert|update|delete|replace|values|table)\b/i.test(s)) continue;
+    try { await sqlRun(ed, 'EXPLAIN ' + s); checked++; }
+    catch (e) {
+     const m = msg(e);
+     if ([...creates].some(t => m.toLowerCase().includes(t))) { skipped++; continue; }
+     if (!cur && /\(1046\)|no database selected/i.test(m)) { nodb++; continue; }
+     if (ddl) return `Statement ${i + 1} could not be checked: ${m}. It comes after a schema change that check_sql does not run, which may be the reason.`;
+     return `Failed${stmts.length > 1 ? ' on statement ' + (i + 1) : ''}: ${m}`;
+    }
+   }
+  } finally { if (moved && cur) { try { await sqlRun(ed, 'USE ' + qid(cur)); } catch (e) { } } }
+  for (const t of createdTables(text)) created.add(t);
+  const notes = [ddl ? `${ddl} schema change(s) (CREATE, ALTER, DROP...) were not checked` : '', skipped ? `${skipped} statement(s) use a table the SQL creates, so they were not checked` : '', nodb ? `${nodb} statement(s) need a database and none is selected` : ''].filter(Boolean);
+  if (!checked) return notes.length ? `Nothing could be checked: ${notes.join('; ')}.` : 'Nothing to check: no SELECT, INSERT, UPDATE or DELETE.';
+  return `OK: ${checked} statement(s) compile. Nothing was run.${notes.length ? ' ' + notes.join('; ') + '.' : ''}`;
+ };
+ /* the agent's system prompt and read-only tools for a cell (src/ai/service.ts agentFor, MySQL) */
+ const agentFor = async (ed, x, cfg) => {
+  const here = await whereFor(ed, ctxs(ed).indexOf(x));
+  const lines = (xs, none) => (xs.length ? xs.slice(0, 300).join('\n') + (xs.length > 300 ? `\n... and ${xs.length - 300} more` : '') : none);
+  const place = a => { const parts = a.table ? splitName(String(a.table)) : [], table = parts.pop(); let database = a.database, schema = a.schema;
+   if (parts.length === 2) [database, schema] = parts; else if (parts.length === 1) database = parts[0]; return { table, container: database || schema || here }; };
+  const created = new Set();
+  const handlers = {
+   listDatabases: async () => `Current database: ${here || '(none selected)'}\nDatabases:\n${lines(await listDbs(ed), '(none)')}`,
+   listTables: async a => { const p = place(a); if (!p.container) return 'No tables found here.';
+    const r = await sqlRun(ed, `SELECT TABLE_NAME, TABLE_TYPE FROM information_schema.TABLES WHERE TABLE_SCHEMA = ${lit(p.container)} ORDER BY TABLE_NAME`);
+    return lines(r.rows.map(([n, t]) => (/VIEW/i.test(t || '') ? n + ' (view)' : String(n))), 'No tables found here.'); },
+   describeTable: async a => { const p = place(a);
+    const r = p.container && p.table ? await sqlRun(ed, `SELECT COLUMN_NAME, COLUMN_TYPE, COLUMN_KEY, IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ${lit(p.container)} AND TABLE_NAME = ${lit(p.table)} ORDER BY ORDINAL_POSITION`) : { rows: [] };
+    if (!r.rows.length) return `Error: table ${a.table} was not found${p.container ? ' in ' + p.container : ''}. Use list_tables to see the tables.`;
+    return r.rows.map(([n, t, k, nl]) => `${n} ${t}${k === 'PRI' ? ' primary key' : ''}${nl === 'NO' && k !== 'PRI' ? ' not null' : ''}`).join('\n'); },
+   checkSql: a => checkSql(ed, here, a.sql, a.standalone ? new Set() : created),
+  };
+  if (cfg.allowResultData || isLocalAi(cfg)) handlers.sampleRows = async a => {
+   const p = place(a); if (!p.table) return 'Error: name a table.';
+   try {
+    const r = await sqlRun(ed, `SELECT * FROM ${[p.container, p.table].filter(Boolean).map(qid).join('.')} LIMIT 5`);
+    if (!r.rows.length) return 'The table is empty.';
+    const cut = v => (typeof v === 'string' && v.length > 80 ? v.slice(0, 80) + '...' : v);
+    return toCsv(r.cols, r.rows.map(row => row.map(cut))) || 'No rows.';
+   } catch (e) { return 'Error: ' + ((e && e.message) || e); }
+  };
+  return { system: PR.agentSystem({ sample: !!handlers.sampleRows, databases: true }), handlers };
+ };
+ /* the agent loop; onUpdate gets { text, steps, todos } as it goes */
+ const runAgent = async ({ system, user, handlers, signal, onUpdate, maxCalls = 10 }) => {
+  const tools = AGENT_TOOLS.filter(t => !t.h || handlers[t.h]).map(({ name, description, parameters }) => ({ name, description, parameters }));
+  const sys = system + '\n\n' + TODO_SYSTEM, msgs = [], st = { steps: [], todos: [] };
+  let final, live = '', plans = 0;
+  const emit = () => onUpdate({ text: final != null ? final : live, steps: st.steps, todos: st.todos });
+  const stop = () => { if (signal && signal.aborted) throw new DOMException('Stopped', 'AbortError'); };
+  /* one run: the model answers, or the run hits its call limit (then final stays undefined) */
+  const pass = async message => {
+   final = undefined; live = ''; msgs.push({ role: 'user', content: message });
+   for (let calls = 0; calls < maxCalls; calls++) {
+    stop();
+    const r = await (await aiReq('chat', { system: sys, messages: msgs, tools }, signal)).json();
+    const text = String(r.text || '').trim(), cs = (r.calls || []).filter(c => c && c.name);
+    msgs.push({ role: 'assistant', content: r.text || '', calls: cs });
+    if (!cs.length) { final = text; emit(); return; }
+    if (text) st.steps.push({ id: 't' + st.steps.length, kind: 'thought', title: firstLine(text), output: clipOut(text), status: 'done' });
+    let planned = false;
+    for (const c of cs) {
+     const plan = c.name === 'write_todos', a = c.args || {};
+     const step = { id: c.id || 's' + st.steps.length, kind: plan ? 'plan' : 'tool', title: plan ? (plans++ ? 'Updated the plan' : 'Made a plan') : stepTitle(c.name, a), input: !plan && c.name === 'check_sql' && typeof a.sql === 'string' ? a.sql : undefined, status: 'running' };
+     st.steps.push(step); emit();
+     let out;
+     try {
+      if (plan) {
+       if (planned) out = 'Error: The `write_todos` tool should never be called multiple times in parallel. Please call it only once per model invocation to update the todo list.';
+       else { planned = true; const td = Array.isArray(a.todos) ? a.todos : []; st.todos = td.map(t => ({ content: String((t && t.content) || ''), status: (t && t.status) || 'pending' })); out = 'Updated todo list to ' + JSON.stringify(td); }
+      } else { const t = AGENT_TOOLS.find(x => x.name === c.name), fn = t && t.h && handlers[t.h]; out = fn ? String(await fn(a)) : `Error: ${c.name} is not a valid tool, try one of [${tools.map(x => x.name).join(', ')}].`; }
+     } catch (e) { out = 'Error: ' + ((e && e.message) || e); }
+     step.status = FAILED.test(out) ? 'error' : 'done'; if (!plan) step.output = clipOut(out);
+     msgs.push({ role: 'tool', id: c.id, name: c.name, content: out }); emit(); stop();
+    }
+   }
+  };
+  try { await pass(user); }
+  catch (e) { const m = (e && e.message) || String(e); if (!(signal && signal.aborted) && !st.steps.length && NO_TOOLS.test(m)) { const x = new Error(m); x.noToolSupport = true; throw x; } throw e; }
+  // Never hand over SQL that was not checked: the final SQL is checked on its own; a failure goes back to the model, at most twice
+  for (let round = 0; round < 2 && final && final.trim(); round++) {
+   const sql = extractSql(final); if (!sql) break;
+   const step = { id: 'f' + st.steps.length, kind: 'tool', title: 'Checked the final SQL', input: sql, status: 'running' }; st.steps.push(step); emit();
+   const res = await Promise.resolve(handlers.checkSql({ sql, standalone: true })).catch(e => 'Error: ' + ((e && e.message) || e));
+   step.output = clipOut(res); step.status = FAILED.test(res) ? 'error' : 'done'; emit();
+   if (!FAILED.test(res) || /could not connect/i.test(res)) break;
+   await pass(`check_sql found a problem with the SQL in your answer, checked on its own:\n${res}\n\nFix it and answer again in the same shape. The SQL block must hold every statement the request needs, in order (for example the CREATE TABLE before the query that uses it).`);
+  }
+  for (const s of st.steps) if (s.status === 'running') s.status = 'done';
+  // the call limit ended the run before an answer: answer once more, no tools, from what the tools found
+  if (!final || !final.trim()) {
+   st.steps.push({ id: 'limit', kind: 'thought', title: 'Step limit reached: answering with what it found', status: 'done' });
+   const found = st.steps.filter(s => s.kind === 'tool').map(s => `### ${s.title}\n${s.input ? 'Input:\n' + s.input + '\n' : ''}Result:\n${s.output || ''}`).join('\n\n');
+   final = undefined; live = ''; emit();
+   const r = await aiReq('stream', { system, user: `${user}\n\nWhat you found with the tools:\n\n${found || '(nothing)'}\n\nYou cannot use tools any more. Give your final answer now, in the shape asked.` }, signal);
+   const rd = r.body.getReader(), dec = new TextDecoder();
+   for (;;) { const { done, value } = await rd.read(); if (done) break; live += dec.decode(value, { stream: true }); const k = live.indexOf('\u0000ERR:'); if (k >= 0) throw new Error(live.slice(k + 5)); emit(); }
+   final = live.trim();
+  }
+  emit();
+  return { text: final, steps: st.steps, todos: st.todos };
+ };
+
  /* streams one answer into the cell's AI card */
- const aiStream = async (ed, x, kind, build) => {
+ /* agent: (cfg) => { system, handlers } for AI cells and Fix with AI; used unless Configure AI says Direct */
+ const aiStream = async (ed, x, kind, build, agent) => {
   const prev = AIO.get(x); if (prev && prev.ctl) prev.ctl.abort();
-  const st = { kind, status: 'streaming', md: '', model: '', ver: 1, ctl: new AbortController() }; AIO.set(x, st);
+  const st = { kind, status: 'streaming', md: '', model: '', ver: 1, ctl: new AbortController(), open: new Set() }; AIO.set(x, st);
   const bump = () => { st.ver++; };
   let cfg;
   try { cfg = await aiCfg(); } catch (e) { st.status = 'error'; st.md = '**AI error:** the plugin server did not answer. Open Workbench with the "Modern MySQL Workbench" shortcut.'; st.ctl = null; bump(); return st; }
@@ -776,15 +1071,34 @@ body.kgptalkieActOn #documentSideBar .accordionContent > .sashContainer{display:
   st.model = cfg.provider + ' · ' + cfg.model; bump();
   try {
    const { system, user } = await build();
-   const r = await aiReq('stream', { system, user }, st.ctl.signal);
-   const rd = r.body.getReader(), dec = new TextDecoder(); let acc = '';
-   for (;;) { const { done, value } = await rd.read(); if (done) break; acc += dec.decode(value, { stream: true }); const k = acc.indexOf('\u0000ERR:'); if (k >= 0) throw new Error(acc.slice(k + 5)); st.md = stripThinking(acc); bump(); }
+   let answered = false;
+   if (agent && cfg.mode !== 'direct') {
+    try {
+     const ag = await agent(cfg); st.steps = []; st.todos = [];
+     const r = await runAgent({ system: ag.system, user, handlers: ag.handlers, signal: st.ctl.signal,
+      onUpdate: p => { st.md = stripThinking(p.text || ''); st.steps = p.steps; st.todos = p.todos; bump(); } });
+     st.md = stripThinking(r.text || ''); answered = true;
+    } catch (e) {
+     if (!e || !e.noToolSupport) throw e;
+     // the model cannot call tools: answer the plain way instead
+     st.steps = st.todos = undefined; st.md = '';
+     st.notice = `${cfg.model} cannot use tools, so it answered without checking the database. Pick a model with tool calling for agent mode.`; bump();
+    }
+   }
+   if (!answered) {
+    const r = await aiReq('stream', { system, user }, st.ctl.signal);
+    const rd = r.body.getReader(), dec = new TextDecoder(); let acc = '';
+    for (;;) { const { done, value } = await rd.read(); if (done) break; acc += dec.decode(value, { stream: true }); const k = acc.indexOf('\u0000ERR:'); if (k >= 0) throw new Error(acc.slice(k + 5)); st.md = stripThinking(acc); bump(); }
+   }
    st.status = 'done'; if (kind !== 'explain' && kind !== 'result') st.sql = extractSql(st.md);
-  } catch (e) { st.status = 'error'; st.md = st.ctl && st.ctl.signal.aborted ? 'Stopped.' : '**AI error:** ' + (e && e.message || e); }
+  } catch (e) {
+   st.status = 'error'; st.md = st.ctl && st.ctl.signal.aborted ? 'Stopped.' : '**AI error:** ' + (e && e.message || e);
+   for (const s of st.steps || []) if (s.status === 'running') s.status = 'error';
+  }
   st.ctl = null; bump(); return st;
  };
  const cellSql = (ed, i) => { const m = ed.getModel(), x = ctxs(ed)[i]; if (!x || isMd(x) || isCmd(m, x)) return null; const sql = textOf(m, x); return sql.trim() ? { x, sql } : null; };
- A.aiExplain = (ed, i) => { const c = cellSql(ed, i); if (!c) return; return aiStream(ed, c.x, 'explain', async () => ({ system: PR.system(), user: PR.explain(c.sql, await schemaText(ed, c.sql)) })); };
+ A.aiExplain = (ed, i) => { const c = cellSql(ed, i); if (!c) return; return aiStream(ed, c.x, 'explain', async () => ({ system: PR.system(), user: PR.explain(c.sql, await schemaText(ed, c.sql, c.x)) })); };
  A.aiOptimize = (ed, i) => {
   const c = cellSql(ed, i); if (!c) return; const sql = c.sql.trim().replace(/;\s*$/, '');
   return aiStream(ed, c.x, 'optimize', async () => {
@@ -793,10 +1107,10 @@ body.kgptalkieActOn #documentSideBar .accordionContent > .sashContainer{display:
     try { plan = (await sqlRun(ed, 'EXPLAIN FORMAT=TREE ' + sql)).rows.map(r => r[0]).join('\n'); }
     catch (e) { try { const r = await sqlRun(ed, 'EXPLAIN ' + sql); plan = [r.cols.join('\t'), ...r.rows.map(x => x.join('\t'))].join('\n'); } catch (_) { } }
    }
-   return { system: PR.system(), user: PR.optimize(sql, await schemaText(ed, sql), plan) };
+   return { system: PR.system(), user: PR.optimize(sql, await schemaText(ed, sql, c.x), plan) };
   });
  };
- A.aiFix = (ed, i) => { const c = cellSql(ed, i); if (!c) return; const err = errText(c.x); if (!err) return; return aiStream(ed, c.x, 'fix', async () => ({ system: PR.system(), user: PR.fix(c.sql, err, await schemaText(ed, c.sql)) })); };
+ A.aiFix = (ed, i) => { const c = cellSql(ed, i); if (!c) return; const err = errText(c.x); if (!err) return; return aiStream(ed, c.x, 'fix', async () => ({ system: PR.system(), user: PR.fix(c.sql, err, await schemaText(ed, c.sql, c.x)) }), cfg => agentFor(ed, c.x, cfg)); };
  A.aiResult = async (ed, i) => {
   const x = ctxs(ed)[i], rs = resultSet(x); if (!rs || !rs.rows.length) return;
   let cfg = null; try { cfg = await aiCfg(); } catch (e) { }
@@ -815,8 +1129,10 @@ body.kgptalkieActOn #documentSideBar .accordionContent > .sashContainer{display:
   const m = ed.getModel(), x = ctxs(ed)[i]; if (!isAi(x)) return null;
   const request = textOf(m, x).split('\n').slice(1).join('\n').trim();
   if (!request) { AIO.delete(x); return { status: 'done' }; }
-  const st = await aiStream(ed, x, 'generate', async () => ({ system: PR.system(), user: PR.generate(request, await schemaText(ed, request)) }));
-  if (st.status !== 'done' || !st.sql) { if (st.status === 'done' && !st.sql) { st.status = 'error'; st.md += '\n\n**No SQL in the answer.** Try rewording the request.'; st.ver++; } return st; }
+  const st = await aiStream(ed, x, 'generate', async () => ({ system: PR.system(), user: PR.generate(request, await schemaText(ed, request, x)) }), cfg => agentFor(ed, x, cfg));
+  /* an answer without SQL (a table is missing, the database is empty) is still an answer: the cell ran fine, there
+     is just nothing to put below (SQL Notebook Studio 448b83e) */
+  if (st.status !== 'done' || !st.sql) return st;
   const j = ctxs(ed).indexOf(x); if (j < 0) return st;
   const nx = ctxs(ed)[j + 1], text = GEN + '\n' + st.sql;
   if (nx && !isMd(nx) && m.getLineContent(nx.startLine).trim() === GEN) await act(ed, 'AI: Write SQL', () => setCell(ed, j + 1, { text, lang: nx.language, res: null }));
@@ -831,11 +1147,28 @@ body.kgptalkieActOn #documentSideBar .accordionContent > .sashContainer{display:
  const AI_TITLE = { explain: 'Explanation', optimize: 'Optimization', fix: 'Suggested fix', result: 'About this result', generate: 'Generated SQL' };
  const DDL = /^\s*(?:(?:--[^\n]*\n|\/\*[\s\S]*?\*\/)\s*)*(create|alter|drop|analyze)\b/i;
  const aiBtn = (a, icon, t) => `<button data-ai="${a}"><span class="codicon codicon-${icon}"></span>${t}</button>`;
+ /* agent mode: the plan and every step, open while it works, folded into "How this answer was made" once done.
+    st.open holds what the reader opened ('trace' and step ids), so a redraw keeps it. */
+ const STEP_ICON = { running: 'loading kgptalkieSpin', done: 'check', error: 'warning' };
+ const traceHtml = st => {
+  const todos = st.todos || [], steps = (st.steps || []).filter(s => s.kind !== 'plan'); if (!todos.length && !steps.length) return '';
+  const busy = st.status === 'streaming', cur = [...steps].reverse().find(s => s.status === 'running') || steps[steps.length - 1];
+  const checks = steps.filter(s => s.kind === 'tool').length, open = busy || (st.open && st.open.has('trace'));
+  const step = s => {
+   const head = `<span class="codicon codicon-${s.kind === 'thought' && s.status !== 'running' ? 'comment' : STEP_ICON[s.status]}"></span><span>${esc(s.title)}</span>`;
+   if (!s.input && !s.output) return `<li class="kgptalkieStep ${s.status}"><div class="kgptalkieStepH">${head}</div></li>`;
+   return `<li class="kgptalkieStep ${s.status}"><div class="kgptalkieStepH kgptalkieTog" data-open="${esc(s.id)}">${head}</div>${st.open && st.open.has(s.id) ? (s.input ? '<pre class="kgptalkieIo in">' + esc(s.input) + '</pre>' : '') + (s.output ? '<pre class="kgptalkieIo">' + esc(s.output) + '</pre>' : '') : ''}</li>`;
+  };
+  return `<div class="kgptalkieTrace${busy ? ' busy' : ''}${open ? ' open' : ''}"><div class="kgptalkieTraceH kgptalkieTog" data-open="trace"><span class="codicon codicon-chevron-right kgptalkieChev"></span><span class="kgptalkieTraceT">${esc(busy ? ((cur && cur.title) || 'Planning') + '...' : 'How this answer was made')}</span><span class="kgptalkieAiM">${todos.length ? 'plan of ' + todos.length + ' · ' : ''}${checks} ${checks === 1 ? 'step' : 'steps'}</span></div>`
+   + (open ? (todos.length ? '<ul class="kgptalkieTodos">' + todos.map(t => `<li class="${esc(t.status)}"><span class="codicon codicon-${t.status === 'completed' ? 'pass-filled' : t.status === 'in_progress' ? 'circle-large-filled' : 'circle-large-outline'}"></span><span>${esc(t.content)}</span></li>`).join('') + '</ul>' : '')
+    + (steps.length ? '<ol class="kgptalkieSteps">' + steps.map(step).join('') + '</ol>' : '') : '') + '</div>';
+ };
  const aiHtml = st => {
   const title = st.status === 'setup' ? 'Set up AI' : AI_TITLE[st.kind] || 'AI';
   let body = st.md || '';
   if (st.kind === 'generate' && st.status === 'done') body = body.replace(/```[\s\S]*?```/g, '').trim();
-  const bodyHtml = st.status === 'streaming' && !st.md ? '<div class="kgptalkieAiSk"><i></i><i></i><i></i></div>' : (body ? mdToHtml(body) : '');
+  const bodyHtml = traceHtml(st) + (st.status === 'streaming' && !st.md ? ((st.steps && st.steps.length) ? '' : '<div class="kgptalkieAiSk"><i></i><i></i><i></i></div>') : (body ? mdToHtml(body) : ''))
+   + (st.notice ? `<div class="kgptalkieAiNotice"><span class="codicon codicon-info"></span>${esc(st.notice)}</div>` : '');
   let acts = '';
   if (st.status === 'setup' || st.status === 'error') acts += aiBtn('configure', 'settings-gear', 'Configure AI');
   if (st.status === 'done' && st.sql && (st.kind === 'fix' || st.kind === 'optimize')) acts += (DDL.test(st.sql) ? aiBtn('addcell', 'add', 'Add as new cell') : aiBtn('apply', 'check', 'Apply to cell')) + aiBtn('copysql', 'copy', 'Copy SQL');
@@ -844,6 +1177,8 @@ body.kgptalkieActOn #documentSideBar .accordionContent > .sashContainer{display:
   return `<div class="kgptalkieAi kgptalkieAi-${st.status}"><div class="kgptalkieAiH"><span class="codicon codicon-sparkle"></span><b>${esc(title)}</b>${st.status === 'streaming' ? '<span class="codicon codicon-loading kgptalkieSpin"></span>' : ''}<span class="kgptalkieAiM">${esc(st.model || '')}</span><span class="kgptalkieSp"></span>${st.kind !== 'generate' || st.status !== 'streaming' ? '<button data-ai="dismiss" title="Dismiss"><span class="codicon codicon-close"></span></button>' : ''}</div><div class="kgptalkieMdBody kgptalkieAiB">${bodyHtml}</div>${acts ? '<div class="kgptalkieAiActs">' + acts + '</div>' : ''}</div>`;
  };
  const aiClick = async (ed, x, e) => {
+  const tg = e.target.closest('.kgptalkieTog[data-open]');
+  if (tg && e.button === 0) { e.preventDefault(); e.stopPropagation(); const st = AIO.get(x); if (!st) return; st.open = st.open || new Set(); const k = tg.dataset.open; if (st.open.has(k)) st.open.delete(k); else st.open.add(k); st.ver++; return; }
   const b = e.target.closest('button[data-ai]'); if (!b) { e.stopPropagation(); return; }
   e.preventDefault(); e.stopPropagation(); const st = AIO.get(x); const a = b.dataset.ai; const i = ctxs(ed).indexOf(x); if (!st) return;
   if (a === 'dismiss') { if (st.ctl) st.ctl.abort(); AIO.delete(x); }
@@ -900,14 +1235,16 @@ body.kgptalkieActOn #documentSideBar .accordionContent > .sashContainer{display:
    <label data-row="key">API key<input data-f="apiKey" type="password" autocomplete="off" spellcheck="false"></label>
    <div class="kgptalkieDlgHint" data-row="key2">Stored encrypted on this PC by the plugin (Windows DPAPI). Never written to notebooks or settings. <a href="#" data-f="forget">Forget the saved key</a></div>
    <label>Model<span class="kgptalkieDlgRow"><input data-f="model" list="kgptalkieAiModels" spellcheck="false"><button data-f="load">Load models</button></span></label><datalist id="kgptalkieAiModels"></datalist>
+   <label>Mode<select data-f="mode"><option value="agent">Agent: plans, looks up tables, checks the SQL</option><option value="direct">Direct: one call, faster, no checks</option></select></label>
+   <div class="kgptalkieDlgHint">For AI prompts and Fix with AI. Agent mode needs a model that can call tools; with one that cannot, the answer is made directly. Explain, Optimize and Explain Result always answer directly.</div>
    <label class="chk"><input type="checkbox" data-f="allowResultData"> Send result rows to AI without asking (Explain Result). A local model never asks.</label>
-   <label class="chk"><input type="checkbox" data-f="runGeneratedSql"> Run SQL from an AI cell right after it is written</label>
+   <label class="chk"><input type="checkbox" data-f="runGeneratedSql"> Run SQL from an AI prompt right after it is written</label>
    <div class="kgptalkieDlgStatus" data-f="status"></div>
    <div class="kgptalkieDlgB"><button class="pri" data-f="save">Save and test</button><button data-f="close">Close</button></div>`);
   const q = f => bk.querySelector(`[data-f="${f}"]`), row = r => bk.querySelector(`[data-row="${r}"]`);
   const DETAIL = { openai: 'GPT models. Needs an API key.', anthropic: 'Claude models. Needs an API key.', openrouter: 'Hundreds of models with one key.', ollama: 'Local models on this computer. No key, nothing leaves your machine.', custom: 'LM Studio, vLLM, LiteLLM and other OpenAI-compatible APIs.' };
   const BASE = { ollama: 'http://localhost:11434', custom: 'http://localhost:1234/v1' };
-  q('allowResultData').checked = cfg.allowResultData; q('runGeneratedSql').checked = cfg.runGeneratedSql;
+  q('allowResultData').checked = cfg.allowResultData; q('runGeneratedSql').checked = cfg.runGeneratedSql; q('mode').value = cfg.mode === 'direct' ? 'direct' : 'agent';
   const sync = keepModel => {
    const p = q('provider').value, info = cfg.providers.find(x => x.id === p);
    q('detail').textContent = DETAIL[p] || '';
@@ -935,7 +1272,7 @@ body.kgptalkieActOn #documentSideBar .accordionContent > .sashContainer{display:
     if (!v.model) { status('Choose a model first.', 'bad'); return; }
     const info = cfg.providers.find(x => x.id === v.provider);
     if (info.needsKey && !v.apiKey && !cfg.hasKey[v.provider]) { status('Paste your API key first.', 'bad'); return; }
-    try { cfg = await (await aiReq('config', { ...v, allowResultData: q('allowResultData').checked, runGeneratedSql: q('runGeneratedSql').checked })).json(); }
+    try { cfg = await (await aiReq('config', { ...v, allowResultData: q('allowResultData').checked, runGeneratedSql: q('runGeneratedSql').checked, mode: q('mode').value })).json(); }
     catch (err) { status('Could not save: ' + err.message, 'bad'); return; }
     sync(true); status('Testing ' + info.label + ' · ' + cfg.model + '...');
     try { const r = await aiReq('stream', { system: 'Reply with the single word OK.', user: 'Say OK' }); const txt = await r.text(); if (txt.includes('\u0000ERR:')) throw new Error(txt.split('\u0000ERR:')[1]); status('AI is ready: ' + info.label + ' · ' + cfg.model, 'ok'); }
@@ -1664,6 +2001,11 @@ footer{margin-top:40px;font-size:12px;color:var(--mut);border-top:1px solid var(
    const ed = ref && list.find(x => x.getModel() === model);
    if (!ed) return Promise.resolve(r0).then(r => r && r.suggestions ? { ...r, suggestions: kwCase(r.suggestions, model, pos) } : r);
    return Promise.resolve(r0).then(async r => {
+    /* an unqualified table resolves where the cell is: a USE above the caret, the session's database, or a USE in
+       an earlier cell (SQL Notebook Studio 1.0.2) */
+    if (!ref.schema) { try { const i = cellAt(ed, pos.lineNumber), x = ctxs(ed)[i];
+     const upTo = x ? model.getValueInRange({ startLineNumber: x.startLine, startColumn: 1, endLineNumber: pos.lineNumber, endColumn: pos.column }) : null;
+     const db = await whereFor(ed, i, upTo); if (db) ref = { ...ref, schema: db }; } catch (er) { } }
     let cols = []; try { cols = await colsFor(ed, ref); } catch (er) { } if (!cols.length) return r && r.suggestions ? { ...r, suggestions: kwCase(r.suggestions, model, pos) } : r;
     const w = model.getWordUntilPosition(pos), range = { startLineNumber: pos.lineNumber, startColumn: w.startColumn, endLineNumber: pos.lineNumber, endColumn: w.endColumn };
     const have = new Set();
@@ -1857,7 +2199,7 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
    { kind: 'sql', text: 'SELECT COUNT(*) AS customers FROM customers;\nSELECT status, COUNT(*) AS orders FROM orders GROUP BY status ORDER BY 2 DESC;\nSELECT category, ROUND(SUM(i.quantity * i.unit_price), 2) AS revenue\nFROM order_items i JOIN products p ON p.id = i.product_id\nGROUP BY category\nORDER BY revenue DESC;' },
    { kind: 'md', text: "## Variables\n\n`{{country}}` is filled in from the notebook's variables. Click **Variables** in the toolbar to change it." },
    { kind: 'sql', text: "SELECT c.city, COUNT(DISTINCT o.id) AS orders, ROUND(SUM(i.quantity * i.unit_price), 2) AS revenue\nFROM customers c\nJOIN orders o ON o.customer_id = c.id\nJOIN order_items i ON i.order_id = o.id\nWHERE c.country = '{{country}}'\nGROUP BY c.city\nORDER BY revenue DESC;" },
-   { kind: 'md', text: '## AI\n\nClick **Configure AI** in the toolbar to use OpenAI, Anthropic, OpenRouter, Ollama or your own API.\nThen use the sparkle on any cell to explain it, run an AI cell to write SQL, or click **Fix with AI** on an error.' },
+   { kind: 'md', text: '## AI\n\nClick **Configure AI** in the toolbar to use OpenAI, Anthropic, OpenRouter, Ollama or your own API.\nThen use the sparkle on any cell to explain it, add an **AI Prompt** to write SQL from plain words, or click **Fix with AI** on an error.' },
    { kind: 'ai', text: 'Top 5 customers by total spend, with their country and number of orders' },
   ].map(c => ({ meta: {}, ...c })),
  };
@@ -1867,7 +2209,7 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
     <li><b>Add the sample notebook.</b> It builds <code>sample_shop</code> (customers, products, orders) on this connection. Start a new notebook first if this one is in use.</li>
     <li><b>Run a cell</b> with Ctrl+Enter, or Run All. Shift+Enter runs and moves on.</li>
     <li><b>Sort, filter, chart.</b> Click a header to sort, the funnel filters each column (<code>&gt;500</code>, <code>1..5</code>, <code>!text</code>, <code>null</code>), Chart plots the result.</li>
-    <li><b>Turn on AI</b> with Configure AI: explain, optimize and fix queries, or write SQL from plain words in an AI cell.</li>
+    <li><b>Turn on AI</b> with Configure AI: explain, optimize and fix queries, or write SQL from plain words in an AI prompt.</li>
    </ol>
    <div class="kgptalkieDlgHint">Right-click a table in Schemas for Select Top 100 and Describe in the notebook. Variables, Notebook Settings and Export are in this toolbar.</div>
    <div class="kgptalkieDlgB"><button class="pri" data-f="sample">Add the sample notebook</button><button data-f="ai">Configure AI</button><button data-f="close">Close</button></div>`);
@@ -1915,12 +2257,12 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
   }
   it.push('-', { t: 'Add Code Cell Above', f: () => A.addAbove(ed, i, 'mysql') }, { t: 'Add Code Cell Below', f: () => A.addBelow(ed, i, 'mysql') },
    { t: 'Add Markdown Cell Above', f: () => A.addAbove(ed, i, 'markdown') }, { t: 'Add Markdown Cell Below', f: () => A.addBelow(ed, i, 'markdown') },
-   { t: 'Add AI Cell Below', f: () => A.addAi(ed, i) },
+   { t: 'Add AI Prompt Below', f: () => A.addAi(ed, i) },
    '-', { t: 'Move Cell Up', f: () => A.move(ed, i, -1), dis: i === 0 || cmd }, { t: 'Move Cell Down', f: () => A.move(ed, i, 1), dis: last || cmd });
   it.push('-');
-  if (!md && !ai) it.push({ t: 'Format: Lines / One Line', k: 'Shift+Alt+F', f: () => A.format(ed, i), dis: cmd }, { t: 'Change to Markdown', k: 'M', f: () => A.setType(ed, i, 'markdown'), dis: cmd }, { t: 'Change to AI Cell', f: () => A.setType(ed, i, 'ai'), dis: cmd }, { t: 'Clear Output', f: () => A.clearOne(ed, i) });
+  if (!md && !ai) it.push({ t: 'Format: Lines / One Line', k: 'Shift+Alt+F', f: () => A.format(ed, i), dis: cmd }, { t: 'Change to Markdown', k: 'M', f: () => A.setType(ed, i, 'markdown'), dis: cmd }, { t: 'Change to AI Prompt', f: () => A.setType(ed, i, 'ai'), dis: cmd }, { t: 'Clear Output', f: () => A.clearOne(ed, i) });
   else if (ai) it.push({ t: 'Change to SQL', k: 'Y', f: () => A.setType(ed, i, 'mysql') }, { t: 'Change to Markdown', k: 'M', f: () => A.setType(ed, i, 'markdown') }, { t: 'Clear Output', f: () => AIO.delete(x), dis: !AIO.get(x) });
-  else it.push({ t: 'Change to SQL', k: 'Y', f: () => A.setType(ed, i, 'mysql') }, { t: 'Change to AI Cell', f: () => A.setType(ed, i, 'ai') });
+  else it.push({ t: 'Change to SQL', k: 'Y', f: () => A.setType(ed, i, 'mysql') }, { t: 'Change to AI Prompt', f: () => A.setType(ed, i, 'ai') });
   it.push('-', { t: 'Delete Cell', f: () => A.remove(ed, i) });
   return it;
  };
@@ -1930,11 +2272,11 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
  const ensureNbBar = ed => {
   const host = ed.getDomNode().closest('.editorHost'); if (!host || !host.parentElement) return;
   const par = host.parentElement; let bar = par.querySelector(':scope > .kgptalkieNbBar');
-  if (bar && bar.dataset.v === '12') return;
+  if (bar && bar.dataset.v === '13') return;
   if (bar) bar.remove();
-  bar = document.createElement('div'); bar.className = 'kgptalkieNbBar'; bar.dataset.v = '12';
+  bar = document.createElement('div'); bar.className = 'kgptalkieNbBar'; bar.dataset.v = '13';
   bar.innerHTML = nbBtn('code', 'add', 'Code', 'Add a code cell below the current one') + nbBtn('md', 'add', 'Markdown', 'Add a markdown cell below the current one')
-   + nbBtn('ai', 'sparkle', 'AI Cell', 'Add an AI cell: describe what you want in plain words, the SQL appears in the cell below') + '<span class="kgptalkieSep"></span>'
+   + nbBtn('ai', 'add', 'AI Prompt', 'Add an AI prompt below the current cell: describe what you want in plain words, the SQL appears in the cell below') + '<span class="kgptalkieSep"></span>'
    + nbBtn('runall', 'run-all', 'Run All', 'Run every cell from the top') + nbBtn('clear', 'clear-all', 'Clear All Outputs', 'Remove every result') + nbBtn('restart', 'debug-restart', 'Restart', 'Clear every output and count from [1] again') + '<span class="kgptalkieSep"></span>'
    + nbBtn('vars', 'symbol-variable', 'Variables', 'Values for {{name}} placeholders in your SQL') + nbBtn('export', 'export', 'Export', 'Export the notebook (.sql, .sqlnb, HTML, PDF, Markdown) or import a .sql / .sqlnb file')
    + '<span class="kgptalkieSp"></span><span class="kgptalkieDb"></span><span class="kgptalkieTag none" title="Set in Notebook Settings"></span>' + nbBtn('aicfg', 'sparkle', 'Configure AI', 'Choose the AI provider, key and model') + nbBtn('settings', 'settings-gear', '', 'Notebook Settings: query timeout, safety checks, connection tag, keyword case') + nbBtn('start', 'question', '', 'Get Started: the sample notebook and a short tour');
@@ -2422,15 +2764,15 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
  const cellBar = (ed, i, x, top) => {
   const bar = document.createElement('div'); bar.className = 'kgptalkieCellBar'; bar.style.top = top + 'px';
   const btn = (a, icon, t) => `<button data-a="${a}" title="${t}"><span class="codicon codicon-${icon}"></span></button>`;
-  bar.innerHTML = isAi(x)
+  bar.innerHTML = btn('aibelow', 'chat-sparkle', 'Add AI Prompt Below') + (isAi(x)
    ? btn('aigen', 'sparkle', 'Write the SQL (Ctrl+Enter)') + btn('more', 'ellipsis', 'More Actions') + btn('del', 'trash', 'Delete Cell')
    : isMd(x)
    ? (rendered(x) ? btn('edit', 'edit', 'Edit Markdown') : btn('render', 'check', 'Render Markdown (Ctrl+Enter)'))
      + btn('more', 'ellipsis', 'More Actions') + btn('del', 'trash', 'Delete Cell')
-   : btn('aiexplain', 'sparkle', 'Explain with AI') + btn('above', 'run-above', 'Run Above') + btn('below', 'run-below', 'Run Cell and Below') + btn('more', 'ellipsis', 'More Actions') + btn('del', 'trash', 'Delete Cell');
+   : btn('aiexplain', 'sparkle', 'Explain with AI') + btn('above', 'run-above', 'Run Above') + btn('below', 'run-below', 'Run Cell and Below') + btn('more', 'ellipsis', 'More Actions') + btn('del', 'trash', 'Delete Cell'));
   bar.addEventListener('mousedown', e => {
    const b = e.target.closest('button'); if (!b) return; e.preventDefault(); e.stopPropagation(); const a = b.dataset.a;
-   if (a === 'aiexplain') A.aiExplain(ed, i); else if (a === 'aigen') A.aiCell(ed, i);
+   if (a === 'aibelow') A.addAi(ed, i); else if (a === 'aiexplain') A.aiExplain(ed, i); else if (a === 'aigen') A.aiCell(ed, i);
    else if (a === 'above') A.runAbove(ed, i); else if (a === 'below') A.runBelow(ed, i); else if (a === 'del') A.remove(ed, i);
    else if (a === 'edit') A.edit(ed, i); else if (a === 'render') A.render(ed, i, false); else if (a === 'more') openMenu(b, cellMenu(ed, i));
   }, { signal: AC.signal });

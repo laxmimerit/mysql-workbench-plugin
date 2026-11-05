@@ -3,7 +3,9 @@
 Versions read like 26.10.0.1: the first three numbers are the MySQL Workbench version the plugin is made
 and tested for (26.10.0), the last number is our release for it (1, 2, 3...).
 
-## Unreleased
+## 26.10.0.3
+
+For MySQL Workbench 26.10.0.
 
 - Explorer: New File and New Folder buttons, as in VS Code. The name box opens in the selected folder (or the
   selected file's folder), warns as you type when the name exists or is not allowed, and makes any folders in the
@@ -15,6 +17,25 @@ and tested for (26.10.0), the last number is our release for it (1, 2, 3...).
   second copy.
 - The plugin server has two new endpoints for this: `fs/search` (read only) and `fs/new` (makes an empty file or
   folder; never overwrites).
+
+From SQL Notebook Studio 1.0.2 to 1.1.1:
+
+- AI agent mode (new default). AI prompts and Fix with AI plan the work, look up databases, tables and columns, and
+  check the SQL against the database (EXPLAIN, never run) before they answer. Each step shows in the AI card under
+  "How this answer was made". Configure AI has a Mode setting: Agent, or Direct (one call, faster, no checks). A
+  model that cannot call tools answers directly, and the card says so. Explain, Optimize and Explain Result always
+  answer directly.
+- AI sees the right tables: the database the cell is in, plus any database the request names. With no database
+  selected it sees the first user databases. It never guesses a table or column name; when one is missing it says
+  so instead of writing SQL.
+- An AI prompt that answers without SQL (a table is missing, the database is empty) ends as done, not as an error.
+- A `USE` in a cell is followed: AI and column autocomplete look where the cell is (a `USE` above the caret, the
+  session's database, or a `USE` in an earlier cell). After the AI checks SQL, the notebook stays in its database.
+- "AI Cell" is now "AI Prompt" (notebook bar, cell menu, Change to AI Prompt).
+- Every cell's toolbar has an Add AI Prompt Below button (chat bubble with a sparkle), so a prompt goes right under
+  any cell.
+- The plugin server has a new endpoint for agent mode: `ai/chat` (one model turn with tools, for OpenAI-compatible
+  APIs, Anthropic and Ollama).
 
 ## 26.10.0.2
 

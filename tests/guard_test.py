@@ -81,6 +81,10 @@ def runs_plain_sql():
 # 0. start on
 p.js("window.kgptalkieGuard && window.kgptalkieGuard.reset(); 1")
 reload_plugin()
+# one SQL cell, whatever an earlier test left (a Markdown first cell would never run SELECT 6*7)
+p.js(f"""(async () => {{ const ed = {ED}, A = window.kgptalkieActions, c = () => ed.getModel().executionContexts.content;
+  for (let k = 0; k < 60 && c().length > 1; k++) {{ await A.remove(ed, c().length - 1); await new Promise(r => setTimeout(r, 100)); }}
+  if (c()[0].language !== 'mysql') await A.setType(ed, 0, 'mysql'); return 1 }})()""")
 g = json.loads(p.js("JSON.stringify({ ...window.kgptalkieGuard, off: window.kgptalkieGuard.off() })"))
 check("server tells the plugin the Workbench version", bool(g.get("wb")), json.dumps(g))
 check(f"Workbench {g.get('wb')} is a tested version", bool(g.get("tested")))

@@ -21,7 +21,7 @@ from urllib.parse import parse_qs, urlsplit
 
 APP = "Modern MySQL Workbench"
 EXE_NAME = "Modern MySQL Workbench.exe"
-VERSION = "26.10.0.2"            # MySQL Workbench version it is made for, then our release
+VERSION = "26.10.0.3"            # MySQL Workbench version it is made for, then our release
 PORT = 9241
 LOCAL = os.environ["LOCALAPPDATA"]
 DEFAULT_TARGET = os.path.join(LOCAL, "Programs", "Modern MySQL Workbench")
@@ -127,7 +127,7 @@ def ai_load():
         return json.load(open(AI_FILE, encoding="utf-8"))
     except (OSError, ValueError):
         return {"provider": "openai", "model": "", "baseUrl": "", "keys": {}, "allowResultData": False,
-                "runGeneratedSql": False}
+                "runGeneratedSql": False, "mode": "agent"}
 
 
 def ai_save(c):
@@ -153,6 +153,7 @@ def ai_public(c):
             "baseUrl": c.get("baseUrl") or PROVIDERS.get(p, {}).get("base", ""),
             "hasKey": {k: bool(c.get("keys", {}).get(k)) for k in PROVIDERS},
             "allowResultData": bool(c.get("allowResultData")), "runGeneratedSql": bool(c.get("runGeneratedSql")),
+            "mode": "direct" if c.get("mode") == "direct" else "agent",
             "providers": [{"id": k, "label": v["label"], "needsKey": v["key"]} for k, v in PROVIDERS.items()],
             "ready": ai_ready(c)}
 
@@ -178,6 +179,8 @@ def ai_update(c, body):
     for k in ("allowResultData", "runGeneratedSql"):
         if k in body:
             c[k] = bool(body[k])
+    if body.get("mode") in ("agent", "direct"):
+        c["mode"] = body["mode"]
     key = str(body.get("apiKey") or "").strip()
     if key:
         c.setdefault("keys", {})[p] = base64.b64encode(_dpapi(key.encode("utf-8"), True)).decode("ascii")
@@ -291,6 +294,111 @@ def ai_stream(c, body):
                 t = (ch.get("delta") or {}).get("content")
                 if t:
                     yield t
+
+
+def _args(a):
+    if isinstance(a, dict):
+        return a
+    try:
+        v = json.loads(a or "{}")
+        return v if isinstance(v, dict) else {}
+    except ValueError:
+        return {}
+
+
+def ai_chat(c, body):
+    """Agent mode: one model turn with tools, not streamed. The page runs the loop and the tools (they need its
+    MySQL session). Messages come in one neutral shape and are turned into each provider's own:
+      {"role": "user", "content": str}
+      {"role": "assistant", "content": str, "calls": [{"id", "name", "args"}]}
+      {"role": "tool", "id": call id, "name": tool name, "content": str}
+    tools: [{"name", "description", "parameters": JSON schema}]. Answer: {"text": str, "calls": [...]}."""
+    p, key, base, model = _cfg_for(c, body)
+    if not model:
+        raise ValueError("Choose a model first (Configure AI).")
+    if PROVIDERS[p]["key"] and not key:
+        raise ValueError(f"No {PROVIDERS[p]['label']} API key saved (Configure AI).")
+    system, msgs, tools = body.get("system", ""), body.get("messages") or [], body.get("tools") or []
+    if p == "anthropic":
+        am = []
+        for m in msgs:
+            if m["role"] == "user":
+                am.append({"role": "user", "content": m.get("content") or ""})
+            elif m["role"] == "assistant":
+                blocks = ([{"type": "text", "text": m["content"]}] if (m.get("content") or "").strip() else []) + \
+                         [{"type": "tool_use", "id": t["id"], "name": t["name"], "input": _args(t.get("args"))}
+                          for t in m.get("calls") or []]
+                am.append({"role": "assistant", "content": blocks or [{"type": "text", "text": "(no answer)"}]})
+            elif m["role"] == "tool":
+                b = {"type": "tool_result", "tool_use_id": m["id"], "content": m.get("content") or ""}
+                last = am[-1] if am else None
+                if last and last["role"] == "user" and isinstance(last["content"], list):
+                    last["content"].append(b)
+                else:
+                    am.append({"role": "user", "content": [b]})
+        j = json.load(_http("https://api.anthropic.com/v1/messages",
+                            {"model": model, "max_tokens": 4096, "system": system, "messages": am,
+                             "tools": [{"name": t["name"], "description": t.get("description", ""),
+                                        "input_schema": t.get("parameters") or {"type": "object", "properties": {}}}
+                                       for t in tools]},
+                            {"x-api-key": key, "anthropic-version": "2023-06-01"}))
+        blocks = j.get("content") or []
+        return {"text": "".join(b.get("text", "") for b in blocks if b.get("type") == "text"),
+                "calls": [{"id": b["id"], "name": b["name"], "args": _args(b.get("input"))}
+                          for b in blocks if b.get("type") == "tool_use"]}
+    fn = [{"type": "function", "function": {"name": t["name"], "description": t.get("description", ""),
+                                             "parameters": t.get("parameters") or {"type": "object", "properties": {}}}}
+          for t in tools]
+    if p == "ollama":
+        om = [{"role": "system", "content": system}]
+        for m in msgs:
+            if m["role"] == "assistant":
+                om.append({"role": "assistant", "content": m.get("content") or "",
+                           "tool_calls": [{"function": {"name": t["name"], "arguments": _args(t.get("args"))}}
+                                          for t in m.get("calls") or []]})
+            elif m["role"] == "tool":
+                om.append({"role": "tool", "content": m.get("content") or "", "tool_name": m.get("name", "")})
+            else:
+                om.append({"role": "user", "content": m.get("content") or ""})
+        root = base[:-3] if base.endswith("/v1") else base
+        j = json.load(_http(root + "/api/chat", {"model": model, "messages": om, "tools": fn, "stream": False, "think": False}))
+        if j.get("error"):
+            raise RuntimeError(j["error"])
+        msg = j.get("message") or {}
+        stamp = str(int(time.time() * 1000))
+        return {"text": msg.get("content") or "",
+                "calls": [{"id": f"call_{stamp}_{i}", "name": (t.get("function") or {}).get("name", ""),
+                           "args": _args((t.get("function") or {}).get("arguments"))}
+                          for i, t in enumerate(msg.get("tool_calls") or [])]}
+    om = [{"role": "system", "content": system}]
+    for m in msgs:
+        if m["role"] == "assistant":
+            a = {"role": "assistant", "content": m.get("content") or ""}
+            if m.get("calls"):
+                a["tool_calls"] = [{"id": t["id"], "type": "function",
+                                    "function": {"name": t["name"], "arguments": json.dumps(_args(t.get("args")))}}
+                                   for t in m["calls"]]
+            om.append(a)
+        elif m["role"] == "tool":
+            om.append({"role": "tool", "tool_call_id": m["id"], "content": m.get("content") or ""})
+        else:
+            om.append({"role": "user", "content": m.get("content") or ""})
+    url = {"openai": "https://api.openai.com/v1", "openrouter": "https://openrouter.ai/api/v1"}.get(p, base)
+    hdr = {"Authorization": f"Bearer {key or 'not-needed'}"}
+    if p == "openrouter":
+        hdr.update({"HTTP-Referer": "https://kgptalkie.com", "X-Title": "Modern MySQL Workbench"})
+    j = json.load(_http(url + "/chat/completions", {"model": model, "messages": om, "tools": fn}, hdr))
+    if j.get("error"):
+        e = j["error"]
+        raise RuntimeError(e.get("message", "error") if isinstance(e, dict) else str(e))
+    msg = ((j.get("choices") or [{}])[0]).get("message") or {}
+    content = msg.get("content")
+    if isinstance(content, list):
+        content = "".join(x.get("text", "") for x in content if isinstance(x, dict))
+    return {"text": content or "",
+            "calls": [{"id": t.get("id") or f"call_{i}", "name": (t.get("function") or {}).get("name", ""),
+                       "args": _args((t.get("function") or {}).get("arguments"))}
+                      for i, t in enumerate(msg.get("tool_calls") or [])]}
 
 
 # ------------------------------------------------------------------ server
@@ -485,6 +593,8 @@ def serve(port):
                             c = ai_update(c, body)
                             ai_save(c)
                     return self._send(200, json.dumps(ai_public(c)))
+                if op == "chat" and method == "POST":
+                    return self._send(200, json.dumps(ai_chat(ai_load(), body)))
                 if op == "models" and method == "POST":
                     return self._send(200, json.dumps({"models": ai_models(ai_load(), body)}))
                 if op == "stream" and method == "POST":

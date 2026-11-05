@@ -19,7 +19,7 @@
   await A.addAi(ed, 0);
   const ai = 1; const xa = ctxs()[ai];
   out.aiCellType = { lines: txt(ai).split('\n').length, first: txt(ai).split('\n')[0], isAi: window.kgptalkieAiCells.has(xa) };
-  ed.executeEdits('t', [{ range: { startLineNumber: xa.endLine, startColumn: 1, endLineNumber: xa.endLine, endColumn: m.getLineMaxColumn(xa.endLine) }, text: 'How many students live in each city? Most first.' }]);
+  ed.executeEdits('t', [{ range: { startLineNumber: xa.endLine, startColumn: 1, endLineNumber: xa.endLine, endColumn: m.getLineMaxColumn(xa.endLine) }, text: 'How many students in kgptalkie_test live in each city? Most first.' }]);
   const st = await A.aiCell(ed, ai);
   out.aiCell = { status: st && st.status, note: st && st.note, cells: ctxs().length, below: txt(ai + 1).slice(0, 200) };
   // run the generated SQL
