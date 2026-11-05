@@ -49,7 +49,8 @@ Third-party software in Modern MySQL Workbench (KGP Talkie)
    https://github.com/langchain-ai/langchainjs
    Used for: the write_todos tool description and planning prompt in
    plugin/kgptalkie-plugin.js (TODO_DESC and TODO_SYSTEM), used by the AI agent
-   mode as SQL Notebook Studio uses them.
+   mode as SQL Notebook Studio uses them, with the em dashes in two sentences
+   changed to commas, brackets and a colon (house style).
 
    MIT License
 

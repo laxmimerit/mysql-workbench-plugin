@@ -893,7 +893,7 @@ Remember: If you only need to make a few tool calls to complete a task, and it i
 
 ## When You Finish
 
-\`write_todos\` tracks your work; it does not deliver the answer. Whatever the user asked for — computations, summaries, comparisons, data — must appear as text content in a message after your final \`write_todos\` call. Marking the last todo complete is not itself an answer to the user.`;
+\`write_todos\` tracks your work; it does not deliver the answer. Whatever the user asked for (computations, summaries, comparisons, data) must appear as text content in a message after your final \`write_todos\` call. Marking the last todo complete is not itself an answer to the user.`;
  const TODO_SYSTEM = `## \`write_todos\`
 
 You have access to the \`write_todos\` tool to help you manage and plan complex objectives.
@@ -911,7 +911,7 @@ Writing todos takes time and tokens, use it when it is helpful for managing comp
 
 ## Finishing a task
 
-When you finish all work, write your final answer in the message AFTER your last \`write_todos\` call — not in the same turn as that call. Start the final message with the substantive content the user asked for — the data, computation, summary, or analysis. The user wants the result, not confirmation that the work is done.`;
+When you finish all work, write your final answer in the message AFTER your last \`write_todos\` call, not in the same turn as that call. Start the final message with the substantive content the user asked for: the data, computation, summary, or analysis. The user wants the result, not confirmation that the work is done.`;
  const OBJ = (props, req) => ({ type: 'object', properties: props, ...(req ? { required: req } : {}) });
  const TABLE_ARGS = OBJ({ table: { type: 'string', description: 'Table name, may be written schema.table or database.schema.table' }, database: { type: 'string' }, schema: { type: 'string' } }, ['table']);
  const AGENT_TOOLS = [
