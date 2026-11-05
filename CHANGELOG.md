@@ -3,6 +3,19 @@
 Versions read like 26.10.0.1: the first three numbers are the MySQL Workbench version the plugin is made
 and tested for (26.10.0), the last number is our release for it (1, 2, 3...).
 
+## Unreleased
+
+- Explorer: New File and New Folder buttons, as in VS Code. The name box opens in the selected folder (or the
+  selected file's folder), warns as you type when the name exists or is not allowed, and makes any folders in the
+  name (`reports/monthly.sql`). A new `.sql`, `.mysql`, `.js`, `.ts` or `.mysql-notebook` file opens in Workbench.
+- Search panel (activity bar, Ctrl+Shift+F): text in every file of the open folder plus matching file names,
+  grouped by file, with Match Case, Match Whole Word and Regular Expression. Clicking a line opens the file there
+  with the match selected.
+- Opening a file from the Explorer or Search switches to its tab when it is already open, instead of opening a
+  second copy.
+- The plugin server has two new endpoints for this: `fs/search` (read only) and `fs/new` (makes an empty file or
+  folder; never overwrites).
+
 ## 26.10.0.2
 
 For MySQL Workbench 26.10.0. Installer and launcher fix; the plugin itself is unchanged.

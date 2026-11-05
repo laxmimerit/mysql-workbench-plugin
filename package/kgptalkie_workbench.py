@@ -10,7 +10,8 @@
     --install [--target DIR] [--no-shortcuts] [--quiet]
     --uninstall [--quiet]
 
-The server binds 127.0.0.1 only. /kgptalkie/fs/list|read|home feed the Explorer panel: read-only, only for Workbench's own
+The server binds 127.0.0.1 only. /kgptalkie/fs/list|read|home|search feed the Explorer and Search panels and POST
+/kgptalkie/fs/new makes a new empty file or folder (it never overwrites or deletes anything): only for Workbench's own
 pages (Origin http://127.0.0.1:<port> or app://renderer), only with the X-KGPTalkie header (any other web page needs a CORS
 preflight, which is refused) and only for Host 127.0.0.1:<port> (no DNS rebinding).
 """
@@ -293,6 +294,89 @@ def ai_stream(c, body):
 
 
 # ------------------------------------------------------------------ server
+BAD_NAME_CHARS = set('<>:"|?*') | {chr(i) for i in range(32)}
+RESERVED_NAMES = {"CON", "PRN", "AUX", "NUL"} | {f"COM{i}" for i in range(1, 10)} | {f"LPT{i}" for i in range(1, 10)}
+
+
+def fs_create(parent, name, is_dir):
+    """New file or folder for the Explorer. name may hold subfolders (a/b/c.sql), as in VS Code; they are made too."""
+    parent = os.path.normpath(parent)
+    if not os.path.isabs(parent) or not os.path.isdir(parent):
+        raise ValueError("The folder to create it in was not found.")
+    parts = [s for s in re.split(r"[\\/]+", name.strip()) if s]
+    if not parts:
+        raise ValueError("A file or folder name must be provided.")
+    for s in parts:
+        if s in (".", "..") or any(c in BAD_NAME_CHARS for c in s) or s != s.rstrip(" .") \
+                or s.split(".")[0].upper() in RESERVED_NAMES:
+            raise ValueError(f"The name {s} is not valid as a file or folder name. Please choose a different name.")
+    target = os.path.join(parent, *parts)
+    if os.path.lexists(target):
+        raise FileExistsError(f"A file or folder {parts[-1]} already exists at this location. Please choose a different name.")
+    if is_dir:
+        os.makedirs(target)
+    else:
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        with open(target, "x", encoding="utf-8"):
+            pass
+    return target
+
+
+SEARCH_SKIP = {"node_modules", "bower_components"}
+SEARCH_MAX_FILE = 2 * 1024 * 1024
+SEARCH_MAX_HITS = 2000
+SEARCH_MAX_FILES = 20000
+SEARCH_SECONDS = 8
+
+
+def fs_search(root, text, case, word, regex, hide):
+    """The Search panel: every line in the folder's text files that matches, plus the files whose name matches.
+    Skips hidden-by-the-Explorer folders, node_modules, binary files and files over 2 MB; stops at 2000 matches."""
+    if not os.path.isdir(root):
+        raise FileNotFoundError(root)
+    if not text:
+        return {"files": [], "hits": 0, "truncated": False}
+    pat = text if regex else re.escape(text)
+    if word:
+        pat = r"\b(?:" + pat + r")\b"
+    rx = re.compile(pat, 0 if case else re.IGNORECASE)
+    files, hits, scanned, truncated, end = [], 0, 0, False, time.time() + SEARCH_SECONDS
+    for d, dirs, names in os.walk(root):
+        dirs[:] = sorted((x for x in dirs if x not in hide and x not in SEARCH_SKIP), key=str.lower)
+        for n in sorted(names, key=str.lower):
+            if n in hide:
+                continue
+            if hits >= SEARCH_MAX_HITS or scanned >= SEARCH_MAX_FILES or time.time() > end:
+                truncated = True
+                break
+            scanned += 1
+            p = os.path.join(d, n)
+            name_hit = [[m.start(), m.end()] for m in rx.finditer(n) if m.end() > m.start()]
+            lines = []
+            try:
+                if os.path.getsize(p) <= SEARCH_MAX_FILE:
+                    with open(p, "rb") as f:
+                        raw = f.read()
+                    if b"\x00" not in raw[:8192]:
+                        for i, line in enumerate(raw.decode("utf-8", "replace").splitlines(), 1):
+                            ms = [[m.start(), m.end()] for m in rx.finditer(line) if m.end() > m.start()]
+                            if ms:
+                                cut = line[:1000]
+                                lines.append({"l": i, "t": cut, "m": [x for x in ms if x[0] < len(cut)][:20]})
+                                hits += len(ms)
+                                if hits >= SEARCH_MAX_HITS:
+                                    truncated = True
+                                    break
+            except OSError:
+                continue
+            if lines or name_hit:
+                files.append({"p": p, "r": os.path.relpath(p, root), "nm": name_hit, "lines": lines})
+        else:
+            continue
+        break
+    return {"files": files, "hits": hits, "truncated": truncated}
+
+
 def serve(port):
     _, front = find_wb()
     if not front:
@@ -346,6 +430,8 @@ def serve(port):
             self.end_headers()
 
         def do_POST(self):
+            if self.path.split("?", 1)[0] == "/kgptalkie/fs/new":
+                return self.fs_new()
             if self.path.startswith("/kgptalkie/ai/"):
                 return self.ai("POST")
             if self.path.split("?", 1)[0] == "/kgptalkie/doc/pdf":
@@ -458,6 +544,9 @@ def serve(port):
                             items.append({"n": e.name, "d": d})
                     items.sort(key=lambda x: (not x["d"], x["n"].lower()))
                     return self._send(200, json.dumps({"path": path, "items": items}))
+                if op == "search":
+                    return self._send(200, json.dumps(fs_search(path, q.get("q", [""])[0], q.get("case", [""])[0] == "1",
+                                                                q.get("word", [""])[0] == "1", q.get("re", [""])[0] == "1", hide)))
                 if op == "read":
                     if os.path.splitext(path)[1].lower() not in can_open:
                         return self._send(415, '{"error":"Workbench cannot open this file type"}')
@@ -465,6 +554,8 @@ def serve(port):
                         return self._send(413, '{"error":"file is larger than 20 MB"}')
                     with open(path, "rb") as f:
                         return self._send(200, f.read(), "text/plain; charset=utf-8")
+            except re.error as e:
+                return self._send(400, json.dumps({"error": "Bad regular expression: " + str(e)}))
             except FileNotFoundError:
                 return self._send(404, '{"error":"not found"}')
             except PermissionError:
@@ -472,6 +563,23 @@ def serve(port):
             except OSError as e:
                 return self._send(500, json.dumps({"error": str(e)}))
             return self._send(404, '{"error":"unknown request"}')
+
+        def fs_new(self):
+            """Explorer's New File / New Folder: {"parent": <folder>, "name": <name or a/b/name>, "dir": bool}."""
+            if not self._origin_ok() or self.headers.get("X-KGPTalkie") != "1":
+                return self._send(403, '{"error":"forbidden"}')
+            try:
+                n = int(self.headers.get("Content-Length") or 0)
+                if n > 100_000:
+                    raise ValueError("request too large")
+                b = json.loads(self.rfile.read(n) or b"{}")
+                return self._send(200, json.dumps({"path": fs_create(b.get("parent") or "", b.get("name") or "", bool(b.get("dir")))}))
+            except FileExistsError as e:
+                return self._send(409, json.dumps({"error": str(e)}))
+            except PermissionError:
+                return self._send(403, '{"error":"You do not have permission to create it here."}')
+            except (ValueError, OSError) as e:
+                return self._send(400, json.dumps({"error": str(e)}))
 
         def do_GET(self):
             p = self.path.split("?", 1)[0]

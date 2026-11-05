@@ -32,6 +32,7 @@ py tests/connect.py
 py tests/run.py all
 py tests/undo_case_test.py
 py tests/guard_test.py
+py tests/explorer_test.py
 py tests/typing_test.py "select name from kgptalkie_test.students where city is not null"
 ```
 
@@ -50,6 +51,7 @@ good run.
 | `export-import`, `export-html-chart`, `import` | HTML, Markdown, `.sqlnb` and `.sql` export and import, charts in HTML |
 | `schema-tree` | Select Top 100 and Describe in Notebook on the schema tree |
 | `guard_test.py` | The version guard: breaks a notebook editor method and the SQL runner on purpose, checks that the plugin turns itself off without a trace, that Workbench still runs SQL, that it stays off until the version changes, and that it comes back |
+| `explorer_test.py` | Explorer New File and New Folder (subfolders in the name, existing and bad names, Escape) and the Search panel (Ctrl+Shift+F, results by file, a line opens the file there, no second tab, Match Case, Whole Word, Clear), in a temporary folder that is deleted afterwards |
 | `sample-notebook`, `sample-results` | The sample notebook from Get Started, run from top to bottom |
 | `ai`, `ai-cards` | Explain, Optimize, Fix with AI, AI cells. Need a model in Configure AI (a local Ollama model works) |
 

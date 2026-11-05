@@ -54,7 +54,7 @@
   Open Folder uses the host's own `showOpenDialog` (id `kgptalkieOpenFolder`); the reply is taken by wrapping
   `electronHost.setMessageHandler` and everything else is passed to `window.onNativeMessage`.
   Clicking a .sql/.mysql/.js/.ts/.mysql-notebook file calls DocumentModule `openSupportedFile` (the File > Open path).
-- Disk access: server.py `/kgptalkie/fs/list|read|home`, read-only; Origin must be http://127.0.0.1:9241 or app://renderer,
+- Disk access: server.py `/kgptalkie/fs/list|read|home|search` (read) and POST `fs/new` (an empty file or folder, never overwrites); Origin must be http://127.0.0.1:9241 or app://renderer,
   header X-KGPTalkie: 1 (forces a refused CORS preflight for any other site), Host checked, reads only Workbench file types,
   20 MB cap. So the Explorer needs server.py running (the launcher starts it).
 - Tested in the hidden copy: panels with and without a connection, fold/unfold, real Open Folder dialog (path typed

@@ -6,13 +6,25 @@
 A hidden window only paints after a device-metrics override, which this script sets and clears again.
 """
 import base64
+import json
 import os
+import shutil
+import tempfile
 
 import websocket
 
 from wbtest import REPO, Page
 
 OUT = os.path.join(REPO, "docs", "images")
+DEMO = {    # the folder shown in the Explorer and Search shots
+    "README.md": "# Sales analytics\n\nMonthly revenue and product reports for the demo shop.\n",
+    "data/sales.csv": "month,region,revenue,orders\n2026-01-01,North,1200,10\n2026-02-01,North,1500,12\n",
+    "notebooks/q4-review.mysql-notebook": "",
+    "queries/monthly_revenue.sql": "SELECT month, SUM(revenue) AS revenue\nFROM sales\nGROUP BY month\nORDER BY month;\n",
+    "queries/revenue_by_region.sql": "SELECT region, SUM(revenue) AS revenue, SUM(orders) AS orders\nFROM sales\nGROUP BY region\nORDER BY revenue DESC;\n",
+    "queries/top_products.sql": "SELECT name, category, price\nFROM products\nORDER BY price DESC\nLIMIT 10;\n",
+    "schema/create_tables.sql": "CREATE TABLE sales (\n  month   DATE,\n  region  VARCHAR(20),\n  revenue DECIMAL(12, 2),\n  orders  INT\n);\n",
+}
 os.makedirs(OUT, exist_ok=True)
 p = Page(timeout=25)
 if not p.use_notebook():
@@ -67,5 +79,30 @@ try:
     js(f"(async()=>{{ document.querySelectorAll('.kgptalkieDlgBack').forEach(e=>e.remove()); document.querySelector('.kgptalkieNbBar [data-a=aicfg]').dispatchEvent(new MouseEvent('mousedown',{{bubbles:true,cancelable:true}})); {TICK} return 1 }})()")
     shot("5-configure-ai.png")
     js("(async()=>{ document.querySelectorAll('.kgptalkieDlgBack').forEach(e=>e.remove()); return 1 })()")
+    # 6 Explorer: New File name box, 7 Search panel, on a small demo folder (put back as it was afterwards)
+    demo = os.path.join(tempfile.mkdtemp(prefix="kgptalkie-shots-"), "sales-analytics")
+    for rel, text in DEMO.items():
+        os.makedirs(os.path.dirname(os.path.join(demo, rel)), exist_ok=True)
+        with open(os.path.join(demo, rel), "w", encoding="utf-8") as f:
+            f.write(text)
+    old_folder, old_panel = js("localStorage.getItem('kgptalkieFolder')"), js("localStorage.getItem('kgptalkiePanel')")
+    ACT = "document.querySelector('.kgptalkieAct button[data-p={0}]').dispatchEvent(new MouseEvent('mousedown',{{bubbles:true,button:0}}));"
+    try:
+        js(f"(async()=>{{ const ed={ED}, top=()=>ed.getTopForLineNumber({CELL.format(phrase="ORDER BY price DESC", edge="startLine")}) - 30; ed.setScrollTop(top()); {TICK} ed.setScrollTop(top()); {TICK} return 1 }})()")
+        js(f"(async()=>{{ window.kgptalkieOnFolder({json.dumps(demo)}); {TICK} return 1 }})()")
+        js(f"(async()=>{{ if (!document.body.classList.contains('kgptalkieP-explorer') || !document.querySelector('.kgptalkieExp').offsetWidth) {{ {ACT.format('explorer')} }} {TICK} return 1 }})()")
+        js(f"""(async()=>{{ for (const n of ['queries']) {{ const r = [...document.querySelectorAll('.kgptalkieExp .kgptalkieDir')].find(e => e.textContent.trim() === n); if (r) r.click(); {TICK} }}
+          document.querySelector('.kgptalkieExp button[data-a=newfile]').click(); {TICK}
+          const i = document.querySelector('.kgptalkieNewIn'); i.value = 'customer_orders.sql'; i.dispatchEvent(new Event('input', {{ bubbles: true }})); {TICK} return 1 }})()""")
+        shot("6-explorer-new-file.png")
+        js("(async()=>{ const i = document.querySelector('.kgptalkieNewIn'); if (i) i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return 1 })()")
+        js(f"""(async()=>{{ {ACT.format('search')} {TICK} const i = document.querySelector('.kgptalkieSrchIn'); i.value = 'revenue'; i.dispatchEvent(new Event('input', {{ bubbles: true }}));
+          for (let n = 0; n < 40 && !document.querySelector('.kgptalkieSFile'); n++) await new Promise(r => setTimeout(r, 150)); {TICK} return 1 }})()""")
+        shot("7-search.png")
+    finally:
+        js("(async()=>{ const i = document.querySelector('.kgptalkieSrchIn'); if (i) { i.value = ''; i.dispatchEvent(new Event('input', { bubbles: true })); } return 1 })()")
+        js(f"window.kgptalkieOnFolder({json.dumps(old_folder)}); 1" if old_folder else "localStorage.removeItem('kgptalkieFolder'); 1")
+        js(f"(async()=>{{ {ACT.format(old_panel if old_panel and old_panel != 'search' else 'explorer')} {TICK} if (document.getElementById('pane0Host') && document.getElementById('pane0Host').getBoundingClientRect().width > 40) document.getElementById('desktopWorkspaceSidebarToggle').click(); {TICK} return 1 }})()")
+        shutil.rmtree(os.path.dirname(demo), ignore_errors=True)
 finally:
     p.call("Emulation.clearDeviceMetricsOverride")

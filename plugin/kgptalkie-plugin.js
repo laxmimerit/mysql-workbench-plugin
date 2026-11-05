@@ -7,8 +7,9 @@
    Build 10: MySQL keywords in capitals as you type (word lists generated from sql-formatter, see tools/gen-keywords.mjs),
    keyword case for autocomplete (UPPERCASE / lowercase / as typed), "Connection · MySQL x.y.z" on the notebook bar. Loaded by package/kgptalkie_workbench.py through Workbench's own
    --renderer-url option; no Workbench file is changed.
-   - Activity bar (VS Code): Explorer (a folder you open; .sql/.mysql/.js/.ts/.mysql-notebook open in Workbench),
-     Schemas, Administration, Oracle Cloud as full-height panels, Settings. Files come from server.py's read-only /kgptalkie/fs/.
+   - Activity bar (VS Code): Explorer (a folder you open; .sql/.mysql/.js/.ts/.mysql-notebook open in Workbench; New File,
+     New Folder), Search (Ctrl+Shift+F: text and file names in the folder), Schemas, Administration, Oracle Cloud as full-height
+     panels, Settings. Files come from the plugin server's /kgptalkie/fs/ (list, read, search; new makes an empty file or folder).
    - Recording look: top bar folded into a connection chip (click it to open the full bar), result toolbar hidden,
      9 px status line with a green tick, fitted results, wheel scrolling over results.
    - Jupyter-style notebook (VS Code look): one box per cell, line numbers, [n] / [*] / [ ] counts, play on hover.
@@ -311,13 +312,36 @@ body.kgptalkieActOn #root > .applicationHost{flex:1 1 auto !important;min-width:
 .kgptalkieAct .kgptalkieSp{flex:1}
 body.kgptalkieActOn #documentSideBar > .actions{display:none !important}
 body.kgptalkieActOn #desktopSidebarHeader{display:none !important}
-body.kgptalkieP-explorer #documentSideBar{display:none !important}
+body.kgptalkieP-explorer #documentSideBar,body.kgptalkieP-search #documentSideBar{display:none !important}
 body.kgptalkieActOn:not(.kgptalkieP-explorer) .kgptalkieExp{display:none !important}
+body.kgptalkieActOn:not(.kgptalkieP-search) .kgptalkieSrch{display:none !important}
 body.kgptalkieActOn:not(.kgptalkieP-explorer) #documentSideBar .kgptalkieHideSec{display:none !important}
 body.kgptalkieActOn:not(.kgptalkieP-explorer) #documentSideBar .kgptalkieFullSec{top:0 !important;height:100% !important}
 .kgptalkieAct button.kgptalkieNA{display:none}
 body.kgptalkieActOn #documentSideBar .accordionContent > .sashContainer{display:none !important}
-.kgptalkieExp{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;background:#F8F8F8;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:13px;color:#3B3B3B;position:relative;user-select:none}
+.kgptalkieExp,.kgptalkieSrch{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;background:#F8F8F8;font-family:var(--msg-standard-font-family,'Segoe UI'),sans-serif;font-size:13px;color:#3B3B3B;position:relative;user-select:none}
+.kgptalkieNew{cursor:default}.kgptalkieNew:hover{background:none}
+.kgptalkieNewIn{all:unset;box-sizing:border-box;flex:1 1 auto;min-width:0;height:20px;line-height:18px;padding:0 4px;background:#fff;border:1px solid #005FB8;font-size:13px;color:#222;user-select:text;cursor:text}
+.kgptalkieNewIn.bad{border-color:#BE1100}
+.kgptalkieNewErr{display:none;margin:0 8px 2px 0;padding:4px 6px;background:#F2DEDE;border:1px solid #BE1100;color:#3B3B3B;font-size:12px;line-height:1.35;white-space:normal;user-select:text}
+.kgptalkieNewErr.on{display:block}
+.kgptalkieSrchBox{flex:0 0 auto;display:flex;align-items:center;margin:0 12px 6px 20px;height:26px;background:#fff;border:1px solid #CECECE;border-radius:2px;box-sizing:border-box}
+.kgptalkieSrchBox:focus-within{border-color:#005FB8;outline:1px solid #005FB8;outline-offset:-1px}
+.kgptalkieSrchIn{all:unset;box-sizing:border-box;flex:1 1 auto;min-width:0;height:24px;padding:0 6px;font-size:13px;color:#222;user-select:text;cursor:text}
+.kgptalkieSrchIn::placeholder{color:#8A8A8A}
+.kgptalkieSrchBox button{all:unset;flex:0 0 20px;width:20px;height:20px;margin-right:2px;display:flex;align-items:center;justify-content:center;border-radius:3px;cursor:pointer;color:#616161;box-sizing:border-box;border:1px solid transparent}
+.kgptalkieSrchBox button:hover{background:#E8E8E8}
+.kgptalkieSrchBox button.on{background:#DDE9F7;border-color:#7FA9DE;color:#0F4A85}
+.kgptalkieSrchBox .codicon{font-size:16px}
+.kgptalkieSrchMsg{flex:0 0 auto;padding:2px 12px 6px 20px;font-size:12px;color:#616161;line-height:1.4;white-space:normal}
+.kgptalkieSrchMsg.err{color:#B42318}
+.kgptalkieSrchMsg .kgptalkieBtn{margin-top:8px}
+.kgptalkieSFile .kgptalkieDim{margin-left:6px;font-size:12px;color:#8A8A8A;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0}
+.kgptalkieSFile .kgptalkieNm{flex:0 1 auto}
+.kgptalkieCnt{flex:0 0 auto;margin-left:6px;min-width:18px;height:18px;line-height:18px;padding:0 5px;border-radius:9px;background:#C4C4C4;color:#fff;font-size:11px;text-align:center;box-sizing:border-box;font-weight:600}
+.kgptalkieSLine{font-size:13px;color:#3B3B3B}
+.kgptalkieSLine .kgptalkieNm{white-space:pre}
+.kgptalkieHit{background:rgba(234,92,0,.33);border-radius:2px}
 .kgptalkieExpHead{flex:0 0 35px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 20px;font-size:11px;letter-spacing:.04em;color:#616161}
 .kgptalkieExpHead .kgptalkieActs{display:flex;gap:2px}
 .kgptalkieExpHead button{all:unset;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:4px;cursor:pointer;color:#616161}
@@ -1948,13 +1972,20 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
     Explorer = our own folder tree (files through server.py's read-only /kgptalkie/fs/); Schemas, Administration and
     Oracle Cloud = Workbench's own sidebar sections, one at a time and full height. */
  const FSURL = 'http://127.0.0.1:9241/kgptalkie/fs/';
- const fsGet = async (op, path) => {
-  const r = await fetch(FSURL + op + (path ? '?path=' + encodeURIComponent(path) : ''), { headers: { 'X-KGPTalkie': '1' }, cache: 'no-store' });
+ const fsGet = async (op, path, more, signal) => {
+  const r = await fetch(FSURL + op + (path ? '?path=' + encodeURIComponent(path) : '') + (more || ''), { headers: { 'X-KGPTalkie': '1' }, cache: 'no-store', signal });
   if (!r.ok) { let m = r.statusText; try { m = (await r.json()).error || m; } catch (e) { } throw new Error(m); }
   return op === 'read' ? r.text() : r.json();
  };
+ const fsPost = async (op, body) => {
+  const r = await fetch(FSURL + op, { method: 'POST', headers: { 'X-KGPTalkie': '1', 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' });
+  let j = {}; try { j = await r.json(); } catch (e) { }
+  if (!r.ok) throw new Error(j.error || (r.status === 404 ? 'The plugin server is older than the plugin. Close Workbench and open it again.' : r.statusText));
+  return j;
+ };
  const PANELS = [
   { id: 'explorer', icon: 'files', t: 'Explorer' },
+  { id: 'search', icon: 'search', t: 'Search (Ctrl+Shift+F)' },
   { id: 'schemas', icon: 'database', t: 'Database (Connections, Schemas)', secs: ['schemas', 'connection'] },
   { id: 'admin', icon: 'dashboard', t: 'Administration', secs: ['administration'] },
   { id: 'oci', icon: 'cloud', t: 'Oracle Cloud Infrastructure', secs: ['oci'] },
@@ -1977,13 +2008,13 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
   '.png': ['file-media', '#A074C4'], '.jpg': ['file-media', '#A074C4'], '.jpeg': ['file-media', '#A074C4'], '.gif': ['file-media', '#A074C4'], '.svg': ['file-media', '#A074C4'], '.mp4': ['file-media', '#A074C4'],
   '.pdf': ['file-pdf', '#C0392B'], '.zip': ['file-zip', '#7A7A7A'], '.txt': ['file', '#7A7A7A'], '.log': ['output', '#7A7A7A'] };
  let toastT = 0;
- const toast = msg => { const b = document.querySelector('.kgptalkieExp .kgptalkieToast'); if (!b) return; b.textContent = msg; b.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => b.classList.remove('on'), 3500); };
+ const toast = msg => { const b = document.querySelector((P.panel === 'search' ? '.kgptalkieSrch' : '.kgptalkieExp') + ' .kgptalkieToast'); if (!b) return; b.textContent = msg; b.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => b.classList.remove('on'), 3500); };
  const loadDir = async (d, force) => {
   if (!force && X.cache.has(d)) return; if (X.loading.has(d)) return; X.loading.add(d);
   try { const r = await fsGet('list', d); X.cache.set(d, r.items); X.err = ''; } catch (e) { X.cache.set(d, { error: String(e.message || e) }); if (d === X.folder) X.err = String(e.message || e); }
   finally { X.loading.delete(d); renderTree(); }
  };
- const setFolder = path => { if (!path) return; X.folder = path; store.set('kgptalkieFolder', path); X.cache.clear(); X.sel = ''; X.err = ''; X.open.add(path); saveOpen(); renderTree(); loadDir(path, true); };
+ const setFolder = path => { if (!path) return; X.folder = path; store.set('kgptalkieFolder', path); X.cache.clear(); X.sel = ''; X.err = ''; X.creating = null; X.open.add(path); saveOpen(); renderTree(); loadDir(path, true); if (SR.q) runSearch(true); else renderSearch(); };
  W.kgptalkieOnFolder = setFolder;
  /* the host's folder dialog answers with a "selectFile" message: take ours, pass everything else to the app */
  const hookHost = () => {
@@ -2012,18 +2043,75 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
   try {
    const dm = findComp(c => typeof c.openSupportedFile === 'function' && typeof c.getOrCreateSelectedUserConnectionPageEntry === 'function');
    if (!dm) { toast('Open a connection first.'); return; }
+   // already open in a tab: switch to that tab, as VS Code does, instead of opening the file a second time
+   const lp = path.toLowerCase(), ws = findComp(c => { const ss = c.props && c.props.savedState; return !!(ss && Array.isArray(ss.documentStates) && ss.documentStates.some(s => s && typeof s.fileName === 'string' && s.fileName.toLowerCase() === lp && s.document)); });
+   if (ws && typeof dm.handleSelectDocument === 'function') {
+    const s = ws.props.savedState.documentStates.find(x => x && typeof x.fileName === 'string' && x.fileName.toLowerCase() === lp && x.document);
+    try { if (await dm.handleSelectDocument({ documentId: s.document.id, pageId: ws.props.id })) return; } catch (e) { }
+   }
    const text = await fsGet('read', path);
    const pe = await dm.getOrCreateSelectedUserConnectionPageEntry(); if (!pe) { toast('Open a connection first.'); return; }
    await dm.openSupportedFile(pe, path, text);
   } catch (e) { toast('Could not open: ' + (e.message || e)); } finally { setTimeout(() => { if (opening === path) opening = ''; }, 800); }
  };
  const row = (cls, depth, inner, title) => `<div class="kgptalkieRow ${cls}" style="padding-left:${8 + depth * 12}px"${title ? ` title="${esc(title)}"` : ''}>${inner}</div>`;
+ /* New File / New Folder: an inline name box at the top of the target folder, as in VS Code (Enter makes it, Escape
+    cancels, clicking away makes it when the name is good). "a/b/name.sql" makes the folders on the way too. */
+ const fileIcon = n => { const ic = ICON[extOf(n)] || ['file', '#8A8A8A']; return `<span class="kgptalkieIc codicon codicon-${ic[0]}" style="color:${ic[1]}"></span>`; };
+ const createRow = depth => {
+  const c = X.creating, pad = 8 + depth * 12;
+  const ic = c.isDir ? '<span class="kgptalkieTw codicon codicon-chevron-right"></span>' : '<span class="kgptalkieTw"></span>' + fileIcon(c.val);
+  return `<div class="kgptalkieRow kgptalkieNew" style="padding-left:${pad}px">${ic}<input class="kgptalkieNewIn" spellcheck="false" autocomplete="off" aria-label="Type ${c.isDir ? 'folder' : 'file'} name. Press Enter to confirm or Escape to cancel."></div>`
+   + `<div class="kgptalkieNewErr" style="margin-left:${pad + 22}px"></div>`;
+ };
+ const nameProblem = (dir, name) => {
+  const segs = name.trim().split(/[\\/]+/).filter(Boolean);
+  if (!segs.length) return 'A file or folder name must be provided.';
+  for (const s of segs) if (s === '.' || s === '..' || /[<>:"|?*\x00-\x1f]/.test(s) || s !== s.replace(/[ .]+$/, '') || /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(s.split('.')[0]))
+   return `The name ${s} is not valid as a file or folder name. Please choose a different name.`;
+  const items = X.cache.get(dir), hit = Array.isArray(items) && items.find(it => it.n.toLowerCase() === segs[0].toLowerCase());
+  if (hit && (segs.length === 1 || !hit.d)) return `A file or folder ${segs[0]} already exists at this location. Please choose a different name.`;
+  return '';
+ };
+ const createIn = () => {
+  if (!X.sel) return X.folder; if (X.selDir) return X.sel;
+  const i = Math.max(X.sel.lastIndexOf('\\'), X.sel.lastIndexOf('/')); return i > 0 ? X.sel.slice(0, i) : X.folder;
+ };
+ const startCreate = isDir => {
+  if (!X.folder) { toast('Open a folder first.'); return; }
+  const dir = createIn(); X.creating = { dir, isDir, val: '', busy: false, err: '' };
+  X.open.add(dir); if (dir !== X.folder) X.open.add(X.folder); saveOpen(); renderTree(); loadDir(dir);
+ };
+ const showCreateErr = msg => {
+  const c = X.creating; if (c) c.err = msg || '';
+  const b = document.querySelector('.kgptalkieExp .kgptalkieNewErr'), i = document.querySelector('.kgptalkieExp .kgptalkieNewIn');
+  if (b) { b.textContent = msg || ''; b.classList.toggle('on', !!msg); } if (i) i.classList.toggle('bad', !!msg);
+ };
+ const cancelCreate = () => { if (!X.creating) return; X.creating = null; renderTree(); };
+ const submitCreate = async fromBlur => {
+  const c = X.creating; if (!c || c.busy) return;
+  const name = c.val.trim(); if (!name) { cancelCreate(); return; }
+  const bad = nameProblem(c.dir, name); if (bad) { if (fromBlur) cancelCreate(); else showCreateErr(bad); return; }
+  c.busy = true;
+  try {
+   await fsPost('new', { parent: c.dir, name, dir: c.isDir });
+   const segs = name.split(/[\\/]+/).filter(Boolean); let p = c.dir;
+   segs.slice(0, -1).forEach(s => { p = joinPath(p, s); X.open.add(p); X.cache.delete(p); });
+   p = joinPath(p, segs[segs.length - 1]); if (c.isDir) X.open.add(p);
+   if (X.creating === c) X.creating = null; X.sel = p; X.selDir = c.isDir; saveOpen();
+   await loadDir(c.dir, true);
+   if (!c.isDir && CAN_OPEN.has(extOf(p))) openFile(p);
+  } catch (e) {
+   c.busy = false; if (X.creating !== c) return; showCreateErr(String(e.message || e));
+   const i = document.querySelector('.kgptalkieExp .kgptalkieNewIn'); if (i) i.focus();
+  }
+ };
  const treeHtml = (d, depth) => {
-  const items = X.cache.get(d);
+  const items = X.cache.get(d), pre = X.creating && X.creating.dir === d && Array.isArray(items) ? createRow(depth) : '';
   if (!items) return row('kgptalkieNote', depth, '<span class="kgptalkieTw"></span>Loading...');
   if (items.error) return row('kgptalkieNote kgptalkieErr', depth, '<span class="kgptalkieTw"></span>' + esc(items.error));
-  if (!items.length && depth) return row('kgptalkieNote', depth, '<span class="kgptalkieTw"></span>Empty folder');
-  let h = '';
+  if (!items.length && depth && !pre) return row('kgptalkieNote', depth, '<span class="kgptalkieTw"></span>Empty folder');
+  let h = pre;
   for (const it of items) {
    const p = joinPath(d, it.n), sel = X.sel === p ? ' kgptalkieSel' : '';
    if (it.d) {
@@ -2039,7 +2127,8 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
  };
  const renderTree = () => {
   const body = document.querySelector('.kgptalkieExp .kgptalkieExpBody'); if (!body) return;
-  const st = body.scrollTop;
+  const st = body.scrollTop, old = body.querySelector('.kgptalkieNewIn'), caret = old ? [old.selectionStart, old.selectionEnd] : null;
+  X.rendering = true;
   if (!X.folder) {
    body.innerHTML = `<div class="kgptalkieEmpty"><p>You have not yet opened a folder.</p><button class="kgptalkieBtn" data-a="open">Open Folder</button><p class="kgptalkieHint">Pick the folder you work in. Its .sql scripts and notebooks open here in Workbench.</p></div>`;
   } else {
@@ -2048,24 +2137,164 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
     + (o ? (X.err ? row('kgptalkieNote kgptalkieErr', 1, '<span class="kgptalkieTw"></span>' + esc(X.err)) : treeHtml(X.folder, 1)) : '');
   }
   body.scrollTop = st;
+  const inp = body.querySelector('.kgptalkieNewIn');
+  if (inp && X.creating) {
+   inp.value = X.creating.val; inp.focus();
+   if (caret) inp.setSelectionRange(caret[0], caret[1]); else inp.scrollIntoView({ block: 'nearest' });
+   if (X.creating.err) showCreateErr(X.creating.err);
+  }
+  X.rendering = false;
  };
  const ensureExplorer = () => {
   const pane = document.getElementById('desktopSidebarPane'); if (!pane) return;
   let ex = pane.querySelector(':scope > .kgptalkieExp'); if (ex) return;
   ex = document.createElement('div'); ex.className = 'kgptalkieExp';
   ex.innerHTML = `<div class="kgptalkieExpHead"><span>EXPLORER</span><span class="kgptalkieActs">`
+   + `<button data-a="newfile" title="New File..."><span class="codicon codicon-new-file"></span></button>`
+   + `<button data-a="newfolder" title="New Folder..."><span class="codicon codicon-new-folder"></span></button>`
    + `<button data-a="open" title="Open Folder..."><span class="codicon codicon-folder-opened"></span></button>`
    + `<button data-a="refresh" title="Refresh Explorer"><span class="codicon codicon-refresh"></span></button>`
    + `<button data-a="collapse" title="Collapse Folders in Explorer"><span class="codicon codicon-collapse-all"></span></button></span></div>`
    + `<div class="kgptalkieExpBody"></div><div class="kgptalkieToast"></div>`;
+  ex.addEventListener('mousedown', e => { if (e.target.closest('button[data-a="newfile"],button[data-a="newfolder"]')) e.preventDefault(); }, { signal: AC.signal });   // keep an open name box from committing on blur
   ex.addEventListener('click', e => {
+   if (e.target.closest('.kgptalkieNew,.kgptalkieNewErr')) return;
    const b = e.target.closest('button[data-a]');
-   if (b) { const a = b.dataset.a; if (a === 'open') pickFolder(); else if (a === 'refresh') { const keep = X.folder; X.cache.clear(); if (keep) loadDir(keep, true); renderTree(); } else if (a === 'collapse') { X.open = new Set(X.folder ? [X.folder] : []); saveOpen(); renderTree(); } return; }
+   if (b) {
+    const a = b.dataset.a;
+    if (a === 'newfile' || a === 'newfolder') startCreate(a === 'newfolder');
+    else if (a === 'open') pickFolder(); else if (a === 'refresh') { const keep = X.folder; X.cache.clear(); if (keep) loadDir(keep, true); renderTree(); } else if (a === 'collapse') { X.creating = null; X.open = new Set(X.folder ? [X.folder] : []); saveOpen(); renderTree(); }
+    return;
+   }
    const it = e.target.closest('[data-p]'); if (!it) return; const p = it.dataset.p;
-   if (it.dataset.d) { if (X.open.has(p)) X.open.delete(p); else { X.open.add(p); loadDir(p); } X.sel = it.dataset.root ? '' : p; saveOpen(); renderTree(); return; }
-   X.sel = p; renderTree(); openFile(p);
+   if (it.dataset.d) { if (X.open.has(p)) X.open.delete(p); else { X.open.add(p); loadDir(p); } X.sel = it.dataset.root ? '' : p; X.selDir = true; saveOpen(); renderTree(); return; }
+   X.sel = p; X.selDir = false; renderTree(); openFile(p);
   }, { signal: AC.signal });
+  ex.addEventListener('input', e => { const i = e.target.closest('.kgptalkieNewIn'); if (!i || !X.creating) return; X.creating.val = i.value; showCreateErr(i.value.trim() ? nameProblem(X.creating.dir, i.value) : '');
+   if (!X.creating.isDir) { const ic = i.parentElement.querySelector('.kgptalkieIc'); if (ic) ic.outerHTML = fileIcon(i.value); } }, { signal: AC.signal });
+  ex.addEventListener('keydown', e => { const i = e.target.closest('.kgptalkieNewIn'); if (!i) return; e.stopPropagation();
+   if (e.key === 'Enter') { e.preventDefault(); submitCreate(false); } else if (e.key === 'Escape') { e.preventDefault(); cancelCreate(); } }, { signal: AC.signal });
+  ex.addEventListener('focusout', e => { if (X.rendering || !e.target.closest('.kgptalkieNewIn') || !X.creating || X.creating.busy) return; setTimeout(() => { if (X.creating && !X.creating.busy && !document.activeElement?.closest?.('.kgptalkieNew')) submitCreate(true); }, 0); }, { signal: AC.signal });
   pane.appendChild(ex); renderTree(); if (X.folder && !X.cache.has(X.folder)) loadDir(X.folder);
+ };
+ /* ---------- Search panel (VS Code style): text in every file of the open folder, and file names ----------
+    The server walks the folder (/kgptalkie/fs/search). Results are grouped by file; a line opens the file at it. */
+ const SR = W.kgptalkieSearchState || (W.kgptalkieSearchState = { q: '', res: null, err: '', busy: false, closed: new Set(), seq: 0, root: '' });
+ SR.case = store.get('kgptalkieSrchCase', '0') === '1'; SR.word = store.get('kgptalkieSrchWord', '0') === '1'; SR.re = store.get('kgptalkieSrchRe', '0') === '1';
+ let srchT = 0, srchAC = null;
+ const runSearch = now => {
+  clearTimeout(srchT);
+  if (!now) { srchT = setTimeout(() => runSearch(true), 300); return; }
+  const seq = ++SR.seq; if (srchAC) { try { srchAC.abort(); } catch (e) { } srchAC = null; }
+  if (!SR.q || !X.folder) { SR.res = null; SR.err = ''; SR.busy = false; renderSearch(); return; }
+  const ac = srchAC = new AbortController(), root = X.folder; SR.busy = true; renderSearch(true);
+  fsGet('search', root, '&q=' + encodeURIComponent(SR.q) + '&case=' + (SR.case ? 1 : 0) + '&word=' + (SR.word ? 1 : 0) + '&re=' + (SR.re ? 1 : 0), ac.signal)
+   .then(r => { if (seq !== SR.seq) return; SR.res = r; SR.err = ''; SR.root = root; SR.closed = new Set(); })
+   .catch(e => { if (seq !== SR.seq || e.name === 'AbortError') return; SR.res = null; SR.err = String(e.message || e); })
+   .finally(() => { if (seq !== SR.seq) return; SR.busy = false; if (srchAC === ac) srchAC = null; renderSearch(); });
+ };
+ const hlText = (t, ms) => { let h = '', at = 0; for (const [s, e] of ms) { if (s < at || s >= t.length) continue; h += esc(t.slice(at, s)) + '<span class="kgptalkieHit">' + esc(t.slice(s, e)) + '</span>'; at = e; } return h + esc(t.slice(at)); };
+ const linePreview = (t, ms) => {
+  let off = t.length - t.trimStart().length, pre = ''; const first = ms.length ? ms[0][0] : off;
+  if (first - off > 40) { off = first - 24; pre = '...'; }
+  const part = t.slice(off, off + 400);
+  return pre + hlText(part, ms.map(([s, e]) => [s - off, Math.min(e - off, part.length)]).filter(([s]) => s >= 0 && s < part.length));
+ };
+ const renderSearch = busyOnly => {
+  const box = document.querySelector('.kgptalkieSrch'); if (!box) return;
+  const msg = box.querySelector('.kgptalkieSrchMsg'), body = box.querySelector('.kgptalkieExpBody'); if (!msg || !body) return;
+  const r = SR.res; msg.classList.toggle('err', !!SR.err);
+  if (!X.folder) { msg.innerHTML = 'Open a folder in the Explorer to search its files.<button class="kgptalkieBtn" data-a="open">Open Folder</button>'; body.innerHTML = ''; return; }
+  if (SR.busy) { msg.textContent = 'Searching...'; if (busyOnly) return; }
+  else if (SR.err) msg.textContent = SR.err;
+  else if (!SR.q || !r) msg.textContent = '';
+  else if (!r.files.length) msg.textContent = 'No results found. Check the Match Case, Whole Word and Regular Expression buttons, or search for something else.';
+  else {
+   const n = r.hits + r.files.filter(f => f.nm.length).length, fc = r.files.length;
+   msg.textContent = `${n} result${n === 1 ? '' : 's'} in ${fc} file${fc === 1 ? '' : 's'}` + (r.truncated ? '. The search stopped early: type more to narrow it down.' : '');
+  }
+  if (SR.root && SR.root !== X.folder) { body.innerHTML = ''; return; }
+  const st = body.scrollTop; let h = '';
+  (r && SR.q ? r.files : []).forEach((f, i) => {
+   const open = !SR.closed.has(f.p) && f.lines.length, n = f.lines.reduce((a, x) => a + x.m.length, 0), nm = baseName(f.p), dir = f.r.slice(0, Math.max(0, f.r.length - nm.length)).replace(/[\\/]+$/, '');
+   h += `<div data-sf="${i}">` + row('kgptalkieSFile', 0, `<span class="kgptalkieTw codicon codicon-chevron-${open ? 'down' : 'right'}"${f.lines.length ? '' : ' style="visibility:hidden"'}></span>${fileIcon(nm)}<span class="kgptalkieNm">${hlText(nm, f.nm)}</span><span class="kgptalkieDim">${esc(dir)}</span>${n ? `<span class="kgptalkieCnt">${n}</span>` : ''}`, f.p) + '</div>';
+   if (open) f.lines.forEach((l, j) => { h += `<div data-sf="${i}" data-sl="${j}">` + row('kgptalkieSLine', 1, `<span class="kgptalkieTw"></span><span class="kgptalkieNm">${linePreview(l.t, l.m)}</span>`, 'Line ' + l.l + ': ' + l.t.trim().slice(0, 300)) + '</div>'; });
+  });
+  body.innerHTML = h; body.scrollTop = st;
+ };
+ /* open a file from the results; for scripts, go to the line and select the match */
+ const openAt = async (path, ln, m) => {
+  await openFile(path);
+  if (!ln || extOf(path) === '.mysql-notebook') return;
+  const end = Date.now() + 5000;
+  const go = () => {
+   for (const ed of list) {
+    const md = ed.getModel && ed.getModel(), dom = ed.getDomNode && ed.getDomNode();
+    if (!md || isNB(ed) || !dom || !dom.getBoundingClientRect().width || md.getLineCount() < ln) continue;
+    const want = SR.res && SR.res.files.find(f => f.p === path), lt = want && want.lines.find(x => x.l === ln);
+    if (lt && !md.getLineContent(ln).startsWith(lt.t.slice(0, 200))) continue;
+    const s = m ? m[0] + 1 : 1, e = m ? m[1] + 1 : 1, rg = { startLineNumber: ln, startColumn: s, endLineNumber: ln, endColumn: e };
+    const put = () => { ed.setSelection(rg); ed.revealLineInCenter(ln); ed.focus(); };
+    put();
+    // a newly opened tab puts the cursor at the top once it settles: place it again if that happened
+    [250, 600, 1200].forEach(t => setTimeout(() => { try { const c = ed.getSelection(); if (c && c.startLineNumber !== ln && c.startLineNumber === 1 && c.startColumn === 1) put(); } catch (x) { } }, t));
+    return;
+   }
+   if (Date.now() < end) setTimeout(go, 200);
+  };
+  go();
+ };
+ const focusSearch = sel => {
+  const i = document.querySelector('.kgptalkieSrch .kgptalkieSrchIn'); if (!i) return;
+  if (sel) { i.value = SR.q = sel; runSearch(true); }
+  i.focus(); i.select();
+ };
+ const openSearch = () => {
+  let sel = ''; try { const ed = list.find(e => e.hasTextFocus && e.hasTextFocus()); if (ed) { const t = ed.getModel().getValueInRange(ed.getSelection()); if (t && !/\n/.test(t) && t.length < 200) sel = t; } } catch (e) { }
+  if (P.panel !== 'search' || !sideShown()) setPanel('search');
+  setTimeout(() => focusSearch(sel), 60);
+ };
+ const ensureSearch = () => {
+  const pane = document.getElementById('desktopSidebarPane'); if (!pane) return;
+  if (pane.querySelector(':scope > .kgptalkieSrch')) return;
+  const sb = document.createElement('div'); sb.className = 'kgptalkieSrch';
+  const tg = (a, ic, t, on) => `<button data-a="${a}" class="${on ? 'on' : ''}" title="${t}" aria-pressed="${on}"><span class="codicon codicon-${ic}"></span></button>`;
+  sb.innerHTML = `<div class="kgptalkieExpHead"><span>SEARCH</span><span class="kgptalkieActs">`
+   + `<button data-a="refresh" title="Refresh"><span class="codicon codicon-refresh"></span></button>`
+   + `<button data-a="clear" title="Clear Search Results"><span class="codicon codicon-clear-all"></span></button>`
+   + `<button data-a="collapse" title="Collapse All"><span class="codicon codicon-collapse-all"></span></button></span></div>`
+   + `<div class="kgptalkieSrchBox"><input class="kgptalkieSrchIn" placeholder="Search" spellcheck="false" autocomplete="off" aria-label="Search in the open folder">`
+   + tg('case', 'case-sensitive', 'Match Case', SR.case) + tg('word', 'whole-word', 'Match Whole Word', SR.word) + tg('re', 'regex', 'Use Regular Expression', SR.re) + `</div>`
+   + `<div class="kgptalkieSrchMsg"></div><div class="kgptalkieExpBody"></div><div class="kgptalkieToast"></div>`;
+  const inp = sb.querySelector('.kgptalkieSrchIn'); inp.value = SR.q;
+  sb.addEventListener('input', e => { if (e.target !== inp) return; SR.q = inp.value; runSearch(false); }, { signal: AC.signal });
+  sb.addEventListener('keydown', e => { if (e.target !== inp) return; e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); runSearch(true); } else if (e.key === 'Escape' && inp.value) { e.preventDefault(); inp.value = SR.q = ''; runSearch(true); } }, { signal: AC.signal });
+  sb.addEventListener('mousedown', e => { if (e.target.closest('.kgptalkieSrchBox button')) e.preventDefault(); }, { signal: AC.signal });
+  sb.addEventListener('click', e => {
+   const b = e.target.closest('button[data-a]');
+   if (b) {
+    const a = b.dataset.a;
+    if (a === 'case' || a === 'word' || a === 're') { SR[a] = !SR[a]; store.set('kgptalkieSrch' + { case: 'Case', word: 'Word', re: 'Re' }[a], SR[a] ? '1' : '0'); b.classList.toggle('on', SR[a]); b.setAttribute('aria-pressed', SR[a]); runSearch(true); }
+    else if (a === 'refresh') runSearch(true);
+    else if (a === 'clear') { inp.value = SR.q = ''; runSearch(true); inp.focus(); }
+    else if (a === 'collapse') { if (SR.res) SR.closed = new Set(SR.res.files.map(f => f.p)); renderSearch(); }
+    else if (a === 'open') pickFolder();
+    return;
+   }
+   const it = e.target.closest('[data-sf]'); if (!it || !SR.res) return;
+   const f = SR.res.files[+it.dataset.sf]; if (!f) return;
+   if (it.dataset.sl == null) {
+    if (!f.lines.length) { if (CAN_OPEN.has(extOf(f.p))) openAt(f.p, 0); else toast('Workbench opens .sql, .mysql, .js, .ts and .mysql-notebook files.'); return; }
+    if (SR.closed.has(f.p)) SR.closed.delete(f.p); else SR.closed.add(f.p); renderSearch(); return;
+   }
+   const l = f.lines[+it.dataset.sl]; if (!l) return;
+   if (!CAN_OPEN.has(extOf(f.p))) { toast('Workbench opens .sql, .mysql, .js, .ts and .mysql-notebook files.'); return; }
+   body().querySelectorAll('.kgptalkieSel').forEach(x => x.classList.remove('kgptalkieSel')); it.firstElementChild.classList.add('kgptalkieSel');
+   openAt(f.p, l.l, l.m[0]);
+  }, { signal: AC.signal });
+  const body = () => sb.querySelector('.kgptalkieExpBody');
+  pane.appendChild(sb); renderSearch();
+  if (SR.q && (!SR.res || SR.root !== X.folder)) runSearch(true);
  };
  /* show one of Workbench's own sections, expanded and full height */
  const showSection = sec => { const s = document.getElementById(sec + 'Section'); if (s && !s.classList.contains('expanded')) { const t = s.querySelector(':scope > .title') || s.firstElementChild; if (t) t.click(); } };
@@ -2085,6 +2314,7 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
  const setPanel = id => {
   if (id === P.panel && sideShown()) { toggleSide(); setTimeout(applyPanel, 50); return; }
   P.panel = id; store.set('kgptalkiePanel', id); if (!sideShown()) toggleSide(); applyPanel(true); setTimeout(applyPanel, 120);
+  if (id === 'search') setTimeout(() => focusSearch(''), 60);
  };
  const ensureActivity = () => {
   const root = document.getElementById('root'); if (!root || !document.getElementById('desktopSidebarPane')) return;
@@ -2100,7 +2330,12 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
    }, { signal: AC.signal });
    root.insertBefore(bar, root.firstChild); applyPanel();
   }
+  if (!W.kgptalkieSrchKeyOn) {                             // Ctrl+Shift+F opens Search, as in VS Code (cleared by teardown)
+   W.kgptalkieSrchKeyOn = true;
+   document.addEventListener('keydown', e => { if (e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey && e.code === 'KeyF') { e.preventDefault(); e.stopPropagation(); openSearch(); } }, { capture: true, signal: AC.signal });
+  }
   ensureExplorer();
+  ensureSearch();
   applyPanel();
   hookHost();
  };
@@ -2317,7 +2552,7 @@ SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM prod
  const loop = () => { if (guardOff) return; tick(); if (!guardOff) W.kgptalkieRaf = requestAnimationFrame(loop); };
  W.kgptalkieTeardown = () => {
   AC.abort(); DISP.forEach(d => { try { d.dispose(); } catch (e) { } }); closeMenu(); try { unhookWs(); } catch (e) { } try { unhookTreeMenus(); } catch (e) { } try { unhookCompletion(); } catch (e) { }
-  document.querySelectorAll('.kgptalkieNbBar,.kgptalkieChip,.kgptalkieAct,.kgptalkieExp').forEach(b => b.remove());
+  document.querySelectorAll('.kgptalkieNbBar,.kgptalkieChip,.kgptalkieAct,.kgptalkieExp,.kgptalkieSrch').forEach(b => b.remove()); W.kgptalkieSrchKeyOn = false;
   document.body.classList.remove('kgptalkieActOn', ...PANELS.map(p => 'kgptalkieP-' + p.id));
   document.querySelectorAll('.kgptalkieDlgBack,.kgptalkieFixBtn,.kgptalkieResAi,.kgptalkieResBar,.kgptalkieChartBox,.kgptalkieViewer,.kgptalkieFRow,.kgptalkiePin,.kgptalkieNbToast').forEach(b => b.remove());
   document.querySelectorAll('.kgptalkieChartView').forEach(b => b.classList.remove('kgptalkieChartView'));

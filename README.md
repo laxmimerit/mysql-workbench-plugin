@@ -108,6 +108,15 @@ A free plugin by KGP Talkie. It runs on top of your installed Workbench and does
 - Schema tree: Select Top 100 in Notebook and Describe in Notebook.
 - A VS Code-style activity bar with an Explorer panel for a folder of `.sql` and notebook files, and a sample
   notebook (`sample_shop`) under Get Started.
+- New File and New Folder in the Explorer bar, as in VS Code: type the name in the box that opens, press Enter.
+  `reports/monthly.sql` makes the `reports` folder too. A new `.sql` file opens in Workbench straight away.
+- Search (the magnifier in the activity bar, or Ctrl+Shift+F) finds text in every file of the open folder, and
+  file names too. Results are grouped by file, with Match Case, Match Whole Word and Regular Expression. Click a
+  line to open the file at that line. A file that is already open switches to its tab instead of opening twice.
+
+![New File in the Explorer](docs/images/6-explorer-new-file.png)
+
+![Search the open folder](docs/images/7-search.png)
 
 ## Choosing an AI model
 
@@ -204,7 +213,9 @@ install folder is modified, and the server stops by itself a few minutes after t
 
 - The plugin server listens on `127.0.0.1` only. Its file, AI and PDF endpoints answer Workbench's own page only
   (origin and host checks plus a custom header, so other web pages are refused).
-- The Explorer reads files only; it never writes or deletes.
+- The Explorer and Search read files. The only thing they write is a new empty file or folder when you use
+  New File or New Folder; they never overwrite, rename or delete anything.
+- Search skips `.git`, `node_modules`, binary files and files over 2 MB, and stops at 2,000 matches.
 - AI API keys are stored with Windows DPAPI in `%APPDATA%\Modern MySQL Workbench\ai.json`, readable only by your Windows
   account. They are never sent to the page and never written into notebooks.
 - AI requests go from the local server straight to the provider you choose. Result rows are sent only after you
